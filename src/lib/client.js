@@ -8,12 +8,12 @@ export const getClient = ({ preview = false }) => {
     // If `preview` is true, use the Preview domain + API key, otherwise use Delivery.
     const domain = preview ? "preview.contentful.com" : "cdn.contentful.com";
     const apiKey = preview
-      ? process.env.NEXT_PUBLIC_CONTENTFUL_PREVIEW_KEY
-      : process.env.NEXT_PUBLIC_CONTENTFUL_DELIVERY_KEY;
+      ? process.env.CONTENTFUL_PREVIEW_KEY
+      : process.env.CONTENTFUL_DELIVERY_KEY;
 
     return createClient({
-      space: process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID,
-      environment: process.env.NEXT_PUBLIC_CONTENTFUL_ENV_ID,
+      space: process.env.CONTENTFUL_SPACE_ID,
+      environment: process.env.CONTENTFUL_ENV_ID,
       accessToken: apiKey,
       host: domain,
       // Content Source Maps prevent the need for manually tagging components for
