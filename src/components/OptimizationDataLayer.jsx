@@ -1,19 +1,23 @@
 "use client";
 
 import { useEffect } from "react";
-import { useOptimization } from "@contentful/optimization-nextjs/client";
+import { useOptimizationContext } from "@contentful/optimization-nextjs/client";
 
 // Forwards Optimization SDK state to window.dataLayer for Google Tag Manager.
 // Renders nothing.
 //
-// GTM used to need its own Ninetailed plugin; it does not any more. The SDK
-// exposes observable state streams, so forwarding is a subscription.
+// GTM used to need its own Ninetailed plugin. There is no equivalent in this
+// SDK — checked: the suite is nine packages (runtimes plus the preview panel)
+// with no plugin family, and no reference to dataLayer, Tag Manager, or a
+// "destination" concept anywhere in it, including the latest release. Streams
+// are the sanctioned integration point; the React README documents this exact
+// pattern under "Provider-managed state subscriptions". So the subscriptions
+// below are idiomatic, and only the payload shape is ours to define.
 //
-// Note this cannot use the provider's `onStatesReady` hook, which would
-// otherwise be the natural place: that option is absent from the App Router
-// server binding, and being a function it could not cross the RSC boundary
-// anyway. Subscribing from a Client Component inside the root is the path that
-// works.
+// That documented hook is `onStatesReady` on the provider, which is not reachable
+// here: it is absent from the App Router root's prop surface, and being a
+// function it could not cross the RSC boundary from the server binding anyway.
+// Subscribing from a Client Component inside the root is the equivalent.
 //
 // No GTM container is loaded. Pushes land in window.dataLayer where they are
 // inspectable from the console, and any GTM snippet added later picks up the
@@ -24,11 +28,32 @@ const pushToDataLayer = (payload) => {
 };
 
 export const OptimizationDataLayer = () => {
-  const sdk = useOptimization();
+  // Context rather than useOptimization(), which throws during render when the
+  // SDK is not ready yet:
+  //
+  //   if (!sdk) throw Error("ContentfulOptimization SDK is unavailable.")
+  //
+  // A `if (!sdk) return` guard after that call is unreachable. Today the server
+  // handoff seeds a snapshot runtime so the value is present on first render and
+  // the throw never fires, but that is a property of this route's configuration,
+  // not of the hook — a route without a handoff would crash the tree. Context
+  // exposes the same instance and lets this component wait instead.
+  const { sdk, error } = useOptimizationContext();
 
   useEffect(() => {
+    if (error) {
+      console.error(
+        "[OptimizationDataLayer] Optimization SDK failed to initialize; " +
+          "not forwarding to the dataLayer:",
+        error,
+      );
+      return;
+    }
+
     const states = sdk?.states;
 
+    // Not an error — the SDK has not finished initializing. This effect re-runs
+    // when it has.
     if (!states) return;
 
     // selectedOptimizations re-emits on profile, consent, and preview changes,
@@ -81,7 +106,7 @@ export const OptimizationDataLayer = () => {
         subscription.unsubscribe();
       }
     };
-  }, [sdk]);
+  }, [sdk, error]);
 
   return null;
 };
