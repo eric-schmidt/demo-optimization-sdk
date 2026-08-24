@@ -1,30 +1,12 @@
-import { createClient } from "contentful";
 import { cacheLife, cacheTag } from "next/cache";
 import safeJsonStringify from "safe-json-stringify";
+import { getClient } from "@/src/lib/contentfulClient";
 
-// Retrieve a Contentful client with various configured options.
-export const getClient = ({ preview = false }) => {
-  try {
-    // If `preview` is true, use the Preview domain + API key, otherwise use Delivery.
-    const domain = preview ? "preview.contentful.com" : "cdn.contentful.com";
-    const apiKey = preview
-      ? process.env.CONTENTFUL_PREVIEW_KEY
-      : process.env.CONTENTFUL_DELIVERY_KEY;
-
-    return createClient({
-      space: process.env.CONTENTFUL_SPACE_ID,
-      environment: process.env.CONTENTFUL_ENV_ID,
-      accessToken: apiKey,
-      host: domain,
-      // Content Source Maps prevent the need for manually tagging components for
-      // Live Preview Inspector Mode, but these are only available on the Preview API.
-      includeContentSourceMaps: preview,
-    });
-  } catch (error) {
-    console.error("Error initializing Contentful client:", error);
-    throw error;
-  }
-};
+// `getClient` lives in src/lib/contentfulClient.js rather than here because the
+// preview panel needs it in the browser, and this module cannot cross that
+// boundary: next/cache and the "use cache" directive below are server-only.
+// Re-exported so existing importers (src/app/api/draft/route.js) keep working.
+export { getClient };
 
 // Walk the Contentful response and collect every Entry/Asset id that appears
 // anywhere in the tree — as a resolved entity (`sys.type: 'Entry' | 'Asset'`)

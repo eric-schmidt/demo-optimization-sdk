@@ -1,5 +1,6 @@
 import React from "react";
 import Image from "next/image";
+import { ConversionCta } from "@/src/components/ConversionCta";
 
 export const Hero = ({ fields: { heading, copy, image } = {} }) => {
   return (
@@ -8,6 +9,10 @@ export const Hero = ({ fields: { heading, copy, image } = {} }) => {
         <h1 className="drop-shadow-lg mb-4">{heading || ""}</h1>
 
         {copy && <div className="text-md lg:text-lg mb-4">{copy || ""}</div>}
+
+        {/* Conversion event for experiment reporting. The hero content type
+            has no CTA field, so the label is a fixed demo string. */}
+        <ConversionCta />
       </div>
 
       <Image
