@@ -1,0 +1,928 @@
+<title>Optimization SDK, Illustrated</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+  /* ========== TOKENS: complete light palette on bare :root ========== */
+  :root {
+    --paper:      #eff2f7;
+    --surface:    #ffffff;
+    --sunk:       #e5e9f2;
+    --code-bg:    #131829;
+    --code-ink:   #dfe4f2;
+    --ink:        #131829;
+    --ink-soft:   #4a5471;
+    --ink-mute:   #6d7691;
+    --rule:       #ccd4e4;
+    --rule-soft:  #dee4f0;
+    --accent:     #2b45c4;
+    --accent-bg:  #e6eafb;
+    --flag:       #97272f;
+    --flag-bg:    #f8e7e8;
+
+    --measure:  66ch;
+    --step--1:  .8125rem;
+    --step-0:   1.0625rem;
+    --step-1:   1.1875rem;
+    --step-2:   clamp(1.35rem, 2.4vw, 1.65rem);
+    --step-3:   clamp(1.75rem, 3.4vw, 2.25rem);
+    --step-4:   clamp(2.3rem, 5.6vw, 3.5rem);
+
+    --display: "Familjen Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --body:    "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono:    "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:     #0b0f17;
+      --surface:   #131926;
+      --sunk:      #1b2231;
+      --code-bg:   #070a11;
+      --code-ink:  #d7deef;
+      --ink:       #e5e9f3;
+      --ink-soft:  #a3adc6;
+      --ink-mute:  #8189a1;
+      --rule:      #2a3345;
+      --rule-soft: #1f2734;
+      --accent:    #8b9fff;
+      --accent-bg: #1a2140;
+      --flag:      #e79098;
+      --flag-bg:   #33161a;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:     #0b0f17;
+    --surface:   #131926;
+    --sunk:      #1b2231;
+    --code-bg:   #070a11;
+    --code-ink:  #d7deef;
+    --ink:       #e5e9f3;
+    --ink-soft:  #a3adc6;
+    --ink-mute:  #8189a1;
+    --rule:      #2a3345;
+    --rule-soft: #1f2734;
+    --accent:    #8b9fff;
+    --accent-bg: #1a2140;
+    --flag:      #e79098;
+    --flag-bg:   #33161a;
+  }
+
+  /* ========== BASE ========== */
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: var(--step-0);
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .shell {
+    width: 100%;
+    max-width: 62rem;
+    margin-inline: auto;
+    padding-inline: clamp(1.15rem, 4vw, 2.75rem);
+  }
+
+  .measure { max-width: var(--measure); }
+
+  h1, h2, h3, h4 {
+    font-family: var(--display);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -.02em;
+    text-wrap: balance;
+    margin: 0;
+  }
+  h1 { font-size: var(--step-4); letter-spacing: -.035em; }
+  h2 { font-size: var(--step-3); }
+  h3 { font-size: var(--step-2); letter-spacing: -.025em; }
+  h4 { font-size: var(--step-1); }
+
+  p { margin: 0; }
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible,
+  summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+
+  code, .mono { font-family: var(--mono); font-size: .89em; }
+
+  /* inline code */
+  :where(p, li, td, th, figcaption, dd, dt) code {
+    background: var(--sunk);
+    border: 1px solid var(--rule-soft);
+    border-radius: 3px;
+    padding: .06em .3em;
+    white-space: nowrap;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: var(--step--1);
+    font-weight: 500;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0;
+  }
+
+  .lede { font-size: var(--step-1); color: var(--ink-soft); }
+  .fine { font-size: var(--step--1); color: var(--ink-mute); line-height: 1.55; }
+
+  .stack   { display: flex; flex-direction: column; gap: 1rem; }
+  .stack-sm{ display: flex; flex-direction: column; gap: .55rem; }
+  .stack-lg{ display: flex; flex-direction: column; gap: 2rem; }
+
+  /* ========== HEADER ========== */
+  header.masthead {
+    background: var(--surface);
+    border-bottom: 1px solid var(--rule);
+    padding-block: clamp(2.75rem, 7vw, 4.75rem) 0;
+  }
+  .masthead .inner { display: flex; flex-direction: column; gap: 1.15rem; }
+
+  .meta-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .45rem;
+    border-top: 1px solid var(--rule-soft);
+    margin-top: 1.5rem;
+    padding-block: .9rem 1.1rem;
+  }
+  .chip {
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .045em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    border: 1px solid var(--rule);
+    border-radius: 100px;
+    padding: .25rem .6rem;
+  }
+
+  /* ========== SCAN LIST ========== */
+  .scan {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: clamp(1.1rem, 3vw, 1.75rem);
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 46rem) { .scan { grid-template-columns: 1fr 1fr; gap: 2.25rem; } }
+
+  .scan h4 {
+    font-family: var(--mono);
+    font-size: var(--step--1);
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    padding-bottom: .55rem;
+    border-bottom: 1px solid var(--rule-soft);
+    margin-bottom: .7rem;
+  }
+  .scan ol { margin: 0; padding-left: 1.35rem; display: flex; flex-direction: column; gap: .3rem; }
+  .scan li { font-size: .95rem; color: var(--ink-soft); }
+  .scan li b { color: var(--ink); font-weight: 600; }
+
+  /* ========== PART DIVIDER ========== */
+  .part {
+    border-top: 2px solid var(--ink);
+    margin-top: 1rem;
+    padding-top: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+  }
+  .part-tag {
+    font-family: var(--mono);
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+
+  /* ========== PRIMITIVE ========== */
+  section.band { padding-block: clamp(2.25rem, 5vw, 3.5rem); }
+
+  .prim {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: .75rem;
+    padding-block: 1.75rem;
+    border-top: 1px solid var(--rule-soft);
+  }
+  .prim:first-of-type { border-top: none; padding-top: .75rem; }
+
+  @media (min-width: 46rem) {
+    .prim { grid-template-columns: 4.25rem minmax(0, 1fr); gap: 0 1.5rem; }
+  }
+
+  .prim-idx {
+    font-family: var(--mono);
+    font-size: .95rem;
+    font-weight: 600;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .02em;
+  }
+  .prim-body { display: flex; flex-direction: column; gap: .8rem; min-width: 0; }
+  .prim-body > p { max-width: var(--measure); color: var(--ink-soft); }
+  .prim-body > p strong { color: var(--ink); font-weight: 600; }
+
+  /* ========== CODE ========== */
+  figure.code { margin: 0; min-width: 0; }
+  figure.code figcaption {
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    padding-bottom: .4rem;
+  }
+  figure.code pre {
+    margin: 0;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    border-radius: 4px;
+    padding: 1rem 1.15rem;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: .825rem;
+    line-height: 1.72;
+    tab-size: 2;
+  }
+  figure.code i  { color: #7f8bb0; font-style: normal; }   /* comment */
+  figure.code b  { color: #9db4ff; font-weight: 500; }     /* keyword / component */
+  figure.code em { color: #7fd6c1; font-style: normal; }   /* string / key */
+  figure.code s  { color: #e9959c; text-decoration: none; }/* danger */
+
+  /* ========== CALLOUT ========== */
+  .note {
+    border-left: 2px solid var(--accent);
+    background: var(--accent-bg);
+    padding: .7rem .95rem;
+    border-radius: 0 3px 3px 0;
+    font-size: .93rem;
+    color: var(--ink-soft);
+    max-width: var(--measure);
+  }
+  .note.is-flag { border-left-color: var(--flag); background: var(--flag-bg); }
+  .note b { color: var(--ink); }
+
+  /* ========== SPLIT COMPARE ========== */
+  .compare { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  @media (min-width: 40rem) { .compare { grid-template-columns: 1fr 1fr; } }
+  .compare > div {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .45rem;
+  }
+  .compare .who {
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  .compare p { font-size: .93rem; color: var(--ink-soft); }
+  .compare .win  { color: var(--accent); font-weight: 600; }
+  .compare .lose { color: var(--flag); font-weight: 600; }
+
+  /* ========== FIGURE / DIAGRAM ========== */
+  figure.dia { margin: 0; display: flex; flex-direction: column; gap: .6rem; }
+  .dia-frame {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 1.1rem;
+    overflow-x: auto;
+  }
+  figure.dia svg { display: block; width: 100%; min-width: 30rem; max-width: 100%; height: auto; color: var(--ink-soft); }
+  figure.dia figcaption { font-size: var(--step--1); color: var(--ink-mute); max-width: var(--measure); }
+  .svg-strong { fill: var(--ink); }
+  .svg-accent { stroke: var(--accent); }
+  .svg-accent-fill { fill: var(--accent); }
+  .svg-box { fill: var(--sunk); stroke: var(--rule); }
+  .svg-hero { fill: var(--accent-bg); stroke: var(--accent); }
+  .svg-flag { stroke: var(--flag); }
+  .svg-flag-fill { fill: var(--flag); }
+  figure.dia text { font-family: var(--mono); font-size: 12px; fill: currentColor; }
+  figure.dia text.t-strong { fill: var(--ink); font-weight: 600; }
+  figure.dia text.t-sm { font-size: 10.5px; }
+
+  /* ========== TABLE ========== */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 34rem; font-size: .92rem; }
+  caption { text-align: left; padding: .8rem 1rem 0; font-size: var(--step--1); color: var(--ink-mute); }
+  th, td { text-align: left; padding: .6rem 1rem; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+  thead th {
+    font-family: var(--mono); font-size: .7rem; letter-spacing: .07em;
+    text-transform: uppercase; color: var(--ink-mute); font-weight: 600;
+  }
+  tbody th { font-weight: 600; color: var(--ink); }
+  tbody tr:last-child :where(th, td) { border-bottom: none; }
+  td.mono, th.mono { font-family: var(--mono); font-size: .82rem; }
+
+  /* ========== FOOTER ========== */
+  footer {
+    background: var(--surface);
+    border-top: 1px solid var(--rule);
+    margin-top: 2rem;
+    padding-block: 2rem 2.75rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+<header class="masthead">
+  <div class="shell">
+    <div class="inner">
+      <p class="eyebrow">Contentful Personalization &amp; Analytics</p>
+      <h1>Optimization SDK, Illustrated</h1>
+      <p class="lede measure">The same thirteen primitives, drawn instead of coded. Six hold true across every SDK in the suite; seven are specific to Next.js App Router. No snippets — just the mechanisms and the names to look up.</p>
+    </div>
+    <div class="meta-strip">
+      <span class="chip">Concepts, not syntax</span>
+      <span class="chip">Verified against optimization-nextjs 1.2.0</span>
+      <span class="chip">App Router · Next.js 16</span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <section class="band">
+    <div class="shell stack-lg">
+      <div class="scan">
+        <div>
+          <h4>Part one · true of every SDK</h4>
+          <ol>
+            <li><b>The decision object</b> — one shape, every runtime</li>
+            <li><b>The baseline join</b> — and why baseline is success</li>
+            <li><b>One root, fixed lifecycle order</b></li>
+            <li><b>Consent is two axes</b>, not a boolean</li>
+            <li><b>The Contentful fetch contract</b></li>
+            <li><b>Where you resolve</b> = flash vs. cacheability</li>
+          </ol>
+        </div>
+        <div>
+          <h4>Part two · Next.js App Router</h4>
+          <ol>
+            <li><b>Import subpaths</b>, never the package root</li>
+            <li><b>Bind once</b>, in a server-only module</li>
+            <li><b>The proxy boundary</b> is required</li>
+            <li><b>Two surfaces</b>: request vs. explicit</li>
+            <li><b>The handoff</b> — server to browser</li>
+            <li><b>Root, tracker, entry</b> — what you render</li>
+            <li><b>Personalized means dynamic</b></li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PART ONE ============ -->
+  <section class="band">
+    <div class="shell stack-lg">
+
+      <div class="part">
+        <span class="part-tag">Part one</span>
+        <h2>What is true of every SDK in the suite</h2>
+        <p class="lede measure">The suite ships packages for React Web, Next.js, plain browser, Node, and React Native. They differ in how they hold state, not in what they do.</p>
+      </div>
+
+      <!-- P1 -->
+      <article class="prim">
+        <div><span class="prim-idx">01</span></div>
+        <div class="prim-body">
+          <h3>The decision object</h3>
+          <p>You ask the Experience API who this visitor is. It answers with one small object — <code>OptimizationData</code> — carrying three things: a <strong>profile</strong> (who we think this visitor is, plus traits), <strong>selectedOptimizations</strong> (which experience won, and which variant index), and <strong>changes</strong> (merge-tag and flag substitutions).</p>
+          <p>Every SDK in the suite receives this same shape. Stateful runtimes — browser, mobile — put it into reactive state. The stateless Node SDK hands it back to the current request and forgets it.</p>
+          <div class="note">
+            <b>The habit to build immediately.</b> An event can be <em>accepted</em> without carrying data yet, so both the acceptance flag and the data need checking before you read. Blocked events don&rsquo;t throw — they come back unaccepted, quietly.
+          </div>
+        </div>
+      </article>
+
+      <!-- P2 -->
+      <article class="prim">
+        <div><span class="prim-idx">02</span></div>
+        <div class="prim-body">
+          <h3>The baseline join</h3>
+          <p>You fetch an ordinary Contentful entry — the <strong>baseline</strong>. The SDK joins it against the visitor&rsquo;s selections and hands back either the authored variant or the baseline, untouched. That join is the whole product surface; everything else exists to decide <em>where</em> it happens and <em>who owns the visitor&rsquo;s identity</em> while it does.</p>
+
+          <figure class="dia">
+            <div class="dia-frame">
+              <svg viewBox="0 0 780 236" role="img" aria-label="Two inputs — a baseline entry from the Contentful Delivery API and selectedOptimizations from the Experience API — meet in the resolver, which outputs either the variant entry when an experience matches, or the baseline entry unchanged when anything is missing.">
+                <defs>
+                  <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                    <polygon points="0,0 10,5 0,10" fill="currentColor"></polygon>
+                  </marker>
+                  <marker id="ah-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                    <polygon points="0,0 10,5 0,10" class="svg-accent-fill"></polygon>
+                  </marker>
+                </defs>
+                <rect x="8" y="26" width="176" height="52" rx="3" class="svg-box"></rect>
+                <text x="96" y="49" text-anchor="middle" class="t-strong">Contentful CDA</text>
+                <text x="96" y="66" text-anchor="middle" class="t-sm">your normal fetch</text>
+                <rect x="8" y="158" width="176" height="52" rx="3" class="svg-box"></rect>
+                <text x="96" y="181" text-anchor="middle" class="t-strong">Experience API</text>
+                <text x="96" y="198" text-anchor="middle" class="t-sm">page() / identify()</text>
+                <line x1="188" y1="52" x2="296" y2="96" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)"></line>
+                <text x="196" y="80" class="t-sm">baseline entry</text>
+                <line x1="188" y1="184" x2="296" y2="140" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)"></line>
+                <text x="196" y="163" class="t-sm">selectedOptimizations</text>
+                <rect x="300" y="82" width="180" height="72" rx="3" class="svg-hero" stroke-width="1.5"></rect>
+                <text x="390" y="112" text-anchor="middle" class="t-strong">resolve</text>
+                <text x="390" y="130" text-anchor="middle" class="t-sm">match nt_experiences</text>
+                <line x1="484" y1="104" x2="596" y2="60" class="svg-accent" stroke-width="1.5" marker-end="url(#ah-a)"></line>
+                <text x="498" y="80" class="t-sm">match</text>
+                <line x1="484" y1="132" x2="596" y2="176" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)"></line>
+                <text x="498" y="163" class="t-sm">anything missing</text>
+                <rect x="600" y="26" width="172" height="52" rx="3" class="svg-hero" stroke-width="1.5"></rect>
+                <text x="686" y="49" text-anchor="middle" class="t-strong">variant entry</text>
+                <text x="686" y="66" text-anchor="middle" class="t-sm">from nt_variants</text>
+                <rect x="600" y="158" width="172" height="52" rx="3" class="svg-box"></rect>
+                <text x="686" y="181" text-anchor="middle" class="t-strong">baseline entry</text>
+                <text x="686" y="198" text-anchor="middle" class="t-sm">unchanged — also success</text>
+              </svg>
+            </div>
+            <figcaption>Resolution is fail-soft: no match, unresolved links, or an entry that was never personalized all produce the baseline. Both outputs are the same type, so the component downstream cannot tell which it received — which is why baseline fallback is safe, and why a silent baseline is so hard to spot.</figcaption>
+          </figure>
+
+          <div class="note is-flag">
+            <b>Two things that bite on day one.</b> A control assignment carries <code>variantIndex: 0</code> — it returns the baseline entry, but the selection metadata is still there. So comparing the resolved entry against the baseline by identity does <em>not</em> tell you whether an experience matched. And your component must render identically from baseline or variant: same content type, all content arriving through props. A component that fetches its own data cannot be personalized.
+          </div>
+        </div>
+      </article>
+
+      <!-- P3 -->
+      <article class="prim">
+        <div><span class="prim-idx">03</span></div>
+        <div class="prim-body">
+          <h3>One root, and a fixed lifecycle order</h3>
+          <p>Create <strong>exactly one</strong> runtime root or process singleton per app. Then the order matters, because selections do not exist until the initial page event comes back.</p>
+
+          <figure class="dia">
+            <div class="dia-frame">
+              <svg viewBox="0 0 780 196" role="img" aria-label="Four ordered steps — initialize, seed consent and identity, emit the page event, resolve entries. A bar underneath shows that no selections exist until the page event returns, after step three.">
+                <defs>
+                  <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                    <polygon points="0,0 10,5 0,10" fill="currentColor"></polygon>
+                  </marker>
+                </defs>
+                <rect x="12" y="30" width="170" height="62" rx="3" class="svg-box"></rect>
+                <text x="97" y="55" text-anchor="middle" class="t-strong">1 · Initialize</text>
+                <text x="97" y="73" text-anchor="middle" class="t-sm">once per app</text>
+
+                <rect x="202" y="30" width="170" height="62" rx="3" class="svg-box"></rect>
+                <text x="287" y="55" text-anchor="middle" class="t-strong">2 · Consent</text>
+                <text x="287" y="73" text-anchor="middle" class="t-sm">+ known identity</text>
+
+                <rect x="392" y="30" width="170" height="62" rx="3" class="svg-hero" stroke-width="1.5"></rect>
+                <text x="477" y="55" text-anchor="middle" class="t-strong">3 · page()</text>
+                <text x="477" y="73" text-anchor="middle" class="t-sm">the deciding call</text>
+
+                <rect x="582" y="30" width="170" height="62" rx="3" class="svg-box"></rect>
+                <text x="667" y="55" text-anchor="middle" class="t-strong">4 · Resolve</text>
+                <text x="667" y="73" text-anchor="middle" class="t-sm">join the entries</text>
+
+                <line x1="184" y1="61" x2="199" y2="61" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah2)"></line>
+                <line x1="374" y1="61" x2="389" y2="61" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah2)"></line>
+                <line x1="564" y1="61" x2="579" y2="61" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah2)"></line>
+
+                <rect x="12" y="122" width="550" height="20" rx="2" class="svg-box"></rect>
+                <text x="287" y="136" text-anchor="middle" class="t-sm">no selections exist yet</text>
+
+                <rect x="562" y="122" width="190" height="20" rx="2" class="svg-hero" stroke-width="1.2"></rect>
+                <text x="657" y="136" text-anchor="middle" class="t-sm">selections available</text>
+
+                <line x1="562" y1="100" x2="562" y2="146" class="svg-accent" stroke-width="1.2" stroke-dasharray="3 3"></line>
+                <text x="12" y="172" class="t-sm">Resolve before step 3 returns and every entry resolves to baseline — correctly, and silently.</text>
+              </svg>
+            </div>
+            <figcaption>The bar is the point: resolution is only meaningful in the window after the initial event is accepted. This is also why the Node SDK scopes everything to a request — it has no window to hold open.</figcaption>
+          </figure>
+
+          <p>The split worth internalizing: browser and mobile runtimes <strong>hold</strong> state across a session. The Node SDK is <strong>request-scoped</strong> — you create a per-request client with <code>forRequest()</code>, and its events live on that object, never on the singleton. Node stores nothing between requests, so carrying the profile forward is your job.</p>
+        </div>
+      </article>
+
+      <!-- P4 -->
+      <article class="prim">
+        <div><span class="prim-idx">04</span></div>
+        <div class="prim-body">
+          <h3>Consent is two independent axes</h3>
+          <p>Not one switch, two: may we <strong>send events</strong>, and may we <strong>retain a profile</strong> across visits. A single boolean sets both; the object form lets them differ — analytics with no durable identity, for instance. With no decision recorded at all, the state is <em>undefined</em>, not <em>false</em>.</p>
+          <div class="compare">
+            <div>
+              <span class="who">Your application owns</span>
+              <p>The consent record itself, the banner or CMP, and the policy. The SDK renders no consent UI and never decides for you.</p>
+            </div>
+            <div>
+              <span class="who">The SDK owns</span>
+              <p>One cookie — <code>ctfl-opt-aid</code> — carrying profile identity so the server and the browser agree on who this visitor is.</p>
+            </div>
+          </div>
+          <div class="note is-flag">
+            <b>Do not mark <code>ctfl-opt-aid</code> HttpOnly.</b> The browser SDK reads it from <code>document.cookie</code> at startup to continue the profile the server established. Lock it away and server-to-browser identity continuity breaks silently, with no error anywhere.
+          </div>
+          <p class="fine measure">Resolution never reads consent. No consent simply means no selections arrive, and no selections resolve to baseline — which is why a consent bug and a content bug look identical from the page.</p>
+        </div>
+      </article>
+
+      <!-- P5 -->
+      <article class="prim">
+        <div><span class="prim-idx">05</span></div>
+        <div class="prim-body">
+          <h3>The Contentful fetch contract</h3>
+          <p>The single largest cause of &ldquo;it renders the baseline and I can&rsquo;t see why.&rdquo; Personalization lives at the end of a chain of links, and the resolver can only match links that came back <em>fully resolved</em>.</p>
+
+          <figure class="dia">
+            <div class="dia-frame">
+              <svg viewBox="0 0 780 216" role="img" aria-label="A four-step link chain from the page entry through nt_experiences and nt_variants to the variant content. A shallow include cuts the chain early, leaving unresolved links that get filtered out, so resolution falls back to baseline.">
+                <defs>
+                  <marker id="ah3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                    <polygon points="0,0 10,5 0,10" fill="currentColor"></polygon>
+                  </marker>
+                </defs>
+                <rect x="10" y="44" width="162" height="56" rx="3" class="svg-box"></rect>
+                <text x="91" y="70" text-anchor="middle" class="t-strong">your entry</text>
+                <text x="91" y="87" text-anchor="middle" class="t-sm">hero, banner, page</text>
+
+                <rect x="212" y="44" width="162" height="56" rx="3" class="svg-box"></rect>
+                <text x="293" y="70" text-anchor="middle" class="t-strong">nt_experiences</text>
+                <text x="293" y="87" text-anchor="middle" class="t-sm">the rules</text>
+
+                <rect x="414" y="44" width="162" height="56" rx="3" class="svg-box"></rect>
+                <text x="495" y="70" text-anchor="middle" class="t-strong">nt_variants</text>
+                <text x="495" y="87" text-anchor="middle" class="t-sm">the alternatives</text>
+
+                <rect x="616" y="44" width="154" height="56" rx="3" class="svg-hero" stroke-width="1.5"></rect>
+                <text x="693" y="70" text-anchor="middle" class="t-strong">variant content</text>
+                <text x="693" y="87" text-anchor="middle" class="t-sm">what renders</text>
+
+                <line x1="174" y1="72" x2="209" y2="72" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah3)"></line>
+                <line x1="376" y1="72" x2="411" y2="72" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah3)"></line>
+                <line x1="578" y1="72" x2="613" y2="72" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah3)"></line>
+
+                <text x="191" y="36" text-anchor="middle" class="t-sm">link</text>
+                <text x="393" y="36" text-anchor="middle" class="t-sm">link</text>
+                <text x="595" y="36" text-anchor="middle" class="t-sm">link</text>
+
+                <line x1="393" y1="20" x2="393" y2="128" class="svg-flag" stroke-width="1.4" stroke-dasharray="4 3"></line>
+                <text x="401" y="148" class="t-sm">a shallow include stops here — the links past it stay</text>
+                <text x="401" y="164" class="t-sm">unresolved, get filtered out, and you get baseline</text>
+
+                <line x1="10" y1="188" x2="770" y2="188" class="svg-accent" stroke-width="1.4"></line>
+                <line x1="10" y1="182" x2="10" y2="194" class="svg-accent" stroke-width="1.4"></line>
+                <line x1="770" y1="182" x2="770" y2="194" class="svg-accent" stroke-width="1.4"></line>
+                <text x="390" y="208" text-anchor="middle" class="t-sm">include: 10 covers the whole chain</text>
+              </svg>
+            </div>
+            <figcaption>Include depth is not a performance knob here — it is the difference between personalization working and silently not working. The SDK-managed fetch path uses <code>include: 10</code>; a hand-rolled fetch has to match it.</figcaption>
+          </figure>
+
+          <div class="tablewrap">
+            <table>
+              <caption>Three payload rules, and how each one fails</caption>
+              <thead>
+                <tr><th scope="col">Rule</th><th scope="col">Why</th><th scope="col">Symptom when broken</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">One concrete locale</th>
+                  <td>All-locale payloads produce locale-keyed field maps the resolver cannot read. Never <code>withAllLocales</code> or <code>locale=*</code>.</td>
+                  <td>Always baseline.</td>
+                </tr>
+                <tr>
+                  <th scope="row">Enough include depth</th>
+                  <td>Unresolved links can&rsquo;t be inspected, so they are filtered out before matching.</td>
+                  <td>Always baseline.</td>
+                </tr>
+                <tr>
+                  <th scope="row">Publish in dependency order</th>
+                  <td>Variants, then experiences, then baseline. The Delivery API only sees published content.</td>
+                  <td>Works in preview, fails in production.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </article>
+
+      <!-- P6 -->
+      <article class="prim">
+        <div><span class="prim-idx">06</span></div>
+        <div class="prim-body">
+          <h3>Where you resolve decides flash versus cacheability</h3>
+          <p>Not an SDK setting — the one architecture decision the SDK forces, and the same decision in every framework. The flash is simply the gap between the first byte arriving and the Experience API answering.</p>
+
+          <figure class="dia">
+            <div class="dia-frame">
+              <svg viewBox="0 0 780 244" role="img" aria-label="Two timelines against a shared first-byte marker. Resolving in the browser puts the Experience API call after the first byte, creating a visible window of baseline content. Resolving on the server puts the call before the first byte, so the correct content is in the markup.">
+                <text x="770" y="20" text-anchor="end" class="t-sm">time →</text>
+                <line x1="400" y1="30" x2="400" y2="206" stroke="currentColor" stroke-width="1.2" stroke-dasharray="4 3"></line>
+                <text x="400" y="24" text-anchor="middle" class="t-sm">first byte in the browser</text>
+
+                <text x="12" y="60" class="t-strong">Resolve in the browser</text>
+                <line x1="12" y1="88" x2="770" y2="88" stroke="currentColor" stroke-width="1.2" opacity=".3"></line>
+                <line x1="400" y1="88" x2="556" y2="88" class="svg-flag" stroke-width="4"></line>
+                <circle cx="556" cy="88" r="5.5" fill="currentColor"></circle>
+                <text x="556" y="112" text-anchor="middle" class="t-sm">Experience API answers</text>
+                <text x="478" y="78" text-anchor="middle" class="t-sm">visitor sees baseline</text>
+
+                <text x="12" y="160" class="t-strong">Resolve on the server</text>
+                <line x1="12" y1="188" x2="770" y2="188" stroke="currentColor" stroke-width="1.2" opacity=".3"></line>
+                <line x1="244" y1="188" x2="400" y2="188" class="svg-accent" stroke-width="4"></line>
+                <circle cx="244" cy="188" r="5.5" class="svg-accent-fill"></circle>
+                <text x="244" y="212" text-anchor="middle" class="t-sm">Experience API answers</text>
+                <text x="322" y="178" text-anchor="middle" class="t-sm">resolved before render</text>
+                <text x="412" y="178" class="t-sm">correct content in the markup</text>
+              </svg>
+            </div>
+            <figcaption>What the picture can&rsquo;t show is the cost: the server timeline reads cookies and headers to know who the visitor is, so that route renders per request and its HTML cannot be shared across visitors. The browser timeline keeps the page static and CDN-cacheable, and pays for it with that red segment.</figcaption>
+          </figure>
+
+          <div class="compare">
+            <div>
+              <span class="who">Resolve in the browser</span>
+              <p class="win">Page stays static and CDN-cacheable.</p>
+              <p class="lose">Flashes baseline before the variant appears.</p>
+              <p>Worst above the fold, where the flash is most visible — and personalization usually is.</p>
+            </div>
+            <div>
+              <span class="who">Resolve on the server</span>
+              <p class="win">No flash — correct content in the first byte.</p>
+              <p class="lose">Route renders per request, not shareable.</p>
+              <p>Only the personalized routes pay this. Everything else keeps whatever cache policy you like.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ============ PART TWO ============ -->
+  <section class="band">
+    <div class="shell stack-lg">
+
+      <div class="part">
+        <span class="part-tag">Part two</span>
+        <h2>Next.js App Router specifics</h2>
+        <p class="lede measure">The Next.js adapter is a thin binding, not a new runtime — it wires the Node SDK for request-time decisions to the React Web SDK for after hydration. Seven things are particular to it.</p>
+      </div>
+
+      <!-- N1 -->
+      <article class="prim">
+        <div><span class="prim-idx">01</span></div>
+        <div class="prim-body">
+          <h3>Import subpaths, never the package root</h3>
+          <p>The root of <code>@contentful/optimization-nextjs</code> has <strong>no runtime export at all</strong>. That is deliberate: each subpath is one runtime and one type surface, so the server/client boundary stays visible in your import lines. For a basic build you need four — <code>/app-router/server</code> for the binding, <code>/request-handler</code> for the proxy, <code>/client</code> for browser hooks, and <code>/app-router/client</code> if you bind inside Client Components.</p>
+          <div class="note is-flag">
+            <b>Older material will send you wrong here.</b> A fair amount of writing describes a factory called <code>createNextjsAppRouterOptimization</code> imported from a bare <code>/app-router</code> path. In 1.2.0 neither exists — the factory is <code>bindNextjsAppRouterServerOptimization</code>, and the only App Router subpaths are <code>/app-router/server</code> and <code>/app-router/client</code>. When a name won&rsquo;t resolve, read the installed package&rsquo;s own README rather than the guide you were following.
+          </div>
+        </div>
+      </article>
+
+      <!-- N2 -->
+      <article class="prim">
+        <div><span class="prim-idx">02</span></div>
+        <div class="prim-body">
+          <h3>Bind once, in a server-only module</h3>
+          <p>One call to <code>bindNextjsAppRouterServerOptimization</code>, in one module, imported everywhere else. A second binding creates a second SDK instance competing with the first for the same visitor. Importing <code>server-only</code> at the top turns an accidental client import into a build error rather than a leak.</p>
+          <p>The configuration is small: a client ID and environment, one concrete <strong>locale</strong>, a <strong>consent</strong> block with a server resolver plus client defaults, and — only if you want the SDK to do the fetching — a <strong>contentful</strong> client.</p>
+        </div>
+      </article>
+
+      <!-- N3 -->
+      <article class="prim">
+        <div><span class="prim-idx">03</span></div>
+        <div class="prim-body">
+          <h3>The proxy boundary is required, not optional</h3>
+          <p>Server Components cannot see the incoming request URL on their own. <code>createNextjsOptimizationContextHandler</code> forwards sanitized URL, headers, and cookies so the request-personalized runtime can resolve a variant before markup is sent.</p>
+          <p>The filename and export name changed with Next.js 16: <code>proxy.ts</code> exporting <code>proxy</code>, where 13&ndash;15 used <code>middleware.ts</code> exporting <code>middleware</code>. The body is identical, and the matcher must cover every route that personalizes per request.</p>
+          <div class="note is-flag">
+            <b>This one fails loudly, which is a mercy.</b> Wrong filename, wrong export name, or a matcher that misses the route, and the bound root <strong>throws</strong>. It does not quietly fall back to baseline — so an error mentioning the handler at startup points straight here.
+          </div>
+        </div>
+      </article>
+
+      <!-- N4 -->
+      <article class="prim">
+        <div><span class="prim-idx">04</span></div>
+        <div class="prim-body">
+          <h3>Two surfaces: the request family versus the top-level members</h3>
+          <p>If you remember one Next.js-specific thing, this is it. The binding hands you the same components twice, and the only difference is <strong>whether they read the request</strong>.</p>
+
+          <figure class="dia">
+            <div class="dia-frame">
+              <svg viewBox="0 0 780 286" role="img" aria-label="The proxy forwards request context into the request family only, producing per-visitor HTML that cannot be shared. The top-level members take selections the application supplies, never read headers or cookies, and produce HTML that can be cached and shared across visitors.">
+                <defs>
+                  <marker id="ah4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                    <polygon points="0,0 10,5 0,10" fill="currentColor"></polygon>
+                  </marker>
+                  <marker id="ah4a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                    <polygon points="0,0 10,5 0,10" class="svg-accent-fill"></polygon>
+                  </marker>
+                </defs>
+
+                <rect x="10" y="16" width="158" height="48" rx="3" class="svg-box"></rect>
+                <text x="89" y="46" text-anchor="middle" class="t-strong">visitor request</text>
+
+                <line x1="89" y1="66" x2="89" y2="86" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah4)"></line>
+
+                <rect x="10" y="88" width="158" height="48" rx="3" class="svg-hero" stroke-width="1.5"></rect>
+                <text x="89" y="112" text-anchor="middle" class="t-strong">proxy.ts</text>
+                <text x="89" y="128" text-anchor="middle" class="t-sm">forwards context</text>
+
+                <line x1="170" y1="112" x2="272" y2="112" class="svg-accent" stroke-width="1.5" marker-end="url(#ah4a)"></line>
+                <text x="221" y="104" text-anchor="middle" class="t-sm">url, headers, cookies</text>
+
+                <rect x="276" y="84" width="212" height="56" rx="3" class="svg-hero" stroke-width="1.5"></rect>
+                <text x="382" y="108" text-anchor="middle" class="t-strong">optimization.request</text>
+                <text x="382" y="125" text-anchor="middle" class="t-sm">reads the request</text>
+
+                <line x1="490" y1="112" x2="574" y2="112" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah4)"></line>
+
+                <rect x="578" y="84" width="192" height="56" rx="3" class="svg-box"></rect>
+                <text x="674" y="108" text-anchor="middle" class="t-strong">per-visitor HTML</text>
+                <text x="674" y="125" text-anchor="middle" class="t-sm">private-request</text>
+
+                <line x1="10" y1="166" x2="770" y2="166" stroke="currentColor" stroke-width="1" opacity=".25"></line>
+
+                <rect x="10" y="196" width="158" height="56" rx="3" class="svg-box"></rect>
+                <text x="89" y="220" text-anchor="middle" class="t-strong">your registry</text>
+                <text x="89" y="237" text-anchor="middle" class="t-sm">chosen selections</text>
+
+                <line x1="170" y1="224" x2="272" y2="224" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah4)"></line>
+                <text x="221" y="216" text-anchor="middle" class="t-sm">explicit inputs</text>
+
+                <rect x="276" y="196" width="212" height="56" rx="3" class="svg-box"></rect>
+                <text x="382" y="220" text-anchor="middle" class="t-strong">top-level members</text>
+                <text x="382" y="237" text-anchor="middle" class="t-sm">never read headers</text>
+
+                <line x1="490" y1="224" x2="574" y2="224" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah4)"></line>
+
+                <rect x="578" y="196" width="192" height="56" rx="3" class="svg-hero" stroke-width="1.5"></rect>
+                <text x="674" y="220" text-anchor="middle" class="t-strong">shared HTML</text>
+                <text x="674" y="237" text-anchor="middle" class="t-sm">cacheable</text>
+
+                <line x1="89" y1="138" x2="89" y2="192" class="svg-flag" stroke-width="1.4" stroke-dasharray="4 3"></line>
+                <line x1="80" y1="176" x2="98" y2="158" class="svg-flag" stroke-width="1.6"></line>
+                <line x1="80" y1="158" x2="98" y2="176" class="svg-flag" stroke-width="1.6"></line>
+                <text x="108" y="172" class="t-sm">no request context reaches this row — that is what makes it shareable</text>
+              </svg>
+            </div>
+            <figcaption>The crossed-out path is the whole idea. Reading the request is what makes a render personal, and it is the same thing that makes it unshareable — so the SDK separates the two surfaces rather than letting you mix them by accident.</figcaption>
+          </figure>
+
+          <p>Four members hang off the request family: <code>OptimizationRoot</code>, <code>OptimizationProvider</code>, <code>OptimizedEntry</code>, and <code>NextAppAutoPageTracker</code>. The cacheable side is where <code>createPublicPermutationHandoff</code> and <code>OptimizationAnalyticsRoot</code> live. Naming the two sets apart on import — <code>Request*</code> and <code>Explicit*</code> — costs a few keystrokes and prevents the mistake this separation exists to catch.</p>
+        </div>
+      </article>
+
+      <!-- N5 -->
+      <article class="prim">
+        <div><span class="prim-idx">05</span></div>
+        <div class="prim-body">
+          <h3>The handoff</h3>
+          <p>The server picked a variant. Now the browser has to hydrate <em>without</em> undoing that decision. The handoff is the object carrying it across the boundary.</p>
+
+          <figure class="dia">
+            <div class="dia-frame">
+              <svg viewBox="0 0 780 196" role="img" aria-label="The server render passes a handoff object, carrying cache scope and hydration mode, to the hydrating browser so it keeps the server's variant. Without the handoff the browser re-resolves and the content flashes back to baseline.">
+                <defs>
+                  <marker id="ah5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                    <polygon points="0,0 10,5 0,10" class="svg-accent-fill"></polygon>
+                  </marker>
+                  <marker id="ah5f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                    <polygon points="0,0 10,5 0,10" class="svg-flag-fill"></polygon>
+                  </marker>
+                </defs>
+
+                <rect x="10" y="40" width="184" height="62" rx="3" class="svg-box"></rect>
+                <text x="102" y="66" text-anchor="middle" class="t-strong">server render</text>
+                <text x="102" y="84" text-anchor="middle" class="t-sm">variant chosen</text>
+
+                <line x1="196" y1="71" x2="286" y2="71" class="svg-accent" stroke-width="1.5" marker-end="url(#ah5)"></line>
+
+                <rect x="290" y="32" width="200" height="78" rx="3" class="svg-hero" stroke-width="1.5"></rect>
+                <text x="390" y="56" text-anchor="middle" class="t-strong">handoff</text>
+                <text x="390" y="76" text-anchor="middle" class="t-sm">cache.scope</text>
+                <text x="390" y="93" text-anchor="middle" class="t-sm">hydration mode</text>
+
+                <line x1="492" y1="71" x2="582" y2="71" class="svg-accent" stroke-width="1.5" marker-end="url(#ah5)"></line>
+
+                <rect x="586" y="40" width="184" height="62" rx="3" class="svg-box"></rect>
+                <text x="678" y="66" text-anchor="middle" class="t-strong">browser hydrates</text>
+                <text x="678" y="84" text-anchor="middle" class="t-sm">keeps the variant</text>
+
+                <path d="M 102 108 C 102 160, 678 160, 678 110" fill="none" class="svg-flag" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ah5f)"></path>
+                <text x="390" y="180" text-anchor="middle" class="t-sm">without it: the browser re-resolves from scratch and flashes back to baseline</text>
+              </svg>
+            </div>
+            <figcaption>Two fields do the real work. <code>cache.scope</code> declares who the render belongs to — <code>private-request</code> for one visitor, a public permutation for many. <code>hydration: 'preserve-server'</code> is what tells the browser to keep what the server decided.</figcaption>
+          </figure>
+
+          <p class="fine measure">The request family builds its handoff automatically and marks it <code>private-request</code>. You only construct one by hand — via <code>createPublicPermutationHandoff</code> — when you are deliberately building something shareable.</p>
+        </div>
+      </article>
+
+      <!-- N6 -->
+      <article class="prim">
+        <div><span class="prim-idx">06</span></div>
+        <div class="prim-body">
+          <h3>Root, tracker, entry — the three things you render</h3>
+          <p><strong><code>OptimizationRoot</code></strong> wraps the participating tree: the provider plus initial page-event wiring. <strong><code>NextAppAutoPageTracker</code></strong> emits the page view. <strong><code>OptimizedEntry</code></strong> is a render prop that hands your component the resolved entry. That is the whole rendering surface.</p>
+          <div class="note">
+            <b>Three constraints, each of which will catch you once.</b> The tracker reads search params, so it <strong>must</strong> sit inside a <code>Suspense</code> boundary. Exactly one owner emits the initial page event — server or browser, never both, or every visit double-counts. And <code>OptimizedEntry</code> takes exactly <strong>one</strong> source: a baseline entry your app fetched, or an entry ID / managed-entry descriptor for the SDK to fetch. Passing two is an error, not a preference.
+          </div>
+        </div>
+      </article>
+
+      <!-- N7 -->
+      <article class="prim">
+        <div><span class="prim-idx">07</span></div>
+        <div class="prim-body">
+          <h3>A personalized route is a dynamic route</h3>
+          <p>Primitive 06 from part one, expressed as Next.js configuration. Reading cookies or headers opts a route out of static generation — correct, and what you want. The failure is leaving static-generation directives on that same route, where the two intentions contradict each other: <code>generateStaticParams</code>, a <code>force-static</code> flag, or a <code>revalidate</code> value.</p>
+          <p>A route that genuinely must stay cached has two honest options: keep personalization client-side there and accept the flash, or serve it from a public-permutation handoff. What it cannot do is run the per-request server preflight for its own markup.</p>
+        </div>
+      </article>
+
+      <!-- NAMES -->
+      <div class="part">
+        <span class="part-tag">Lookup</span>
+        <h2>The names, in one place</h2>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <caption>Everything named above, with the subpath it comes from — <code>@contentful/optimization-nextjs</code> 1.2.0</caption>
+          <thead>
+            <tr><th scope="col">Name</th><th scope="col">Subpath</th><th scope="col">Role</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row" class="mono">bindNextjsAppRouterServerOptimization</th><td class="mono">/app-router/server</td><td>The one binding call. Returns both surfaces.</td></tr>
+            <tr><th scope="row" class="mono">createNextjsOptimizationContextHandler</th><td class="mono">/request-handler</td><td>The proxy / middleware request-context forwarder.</td></tr>
+            <tr><th scope="row" class="mono">optimization.request</th><td class="mono">/app-router/server</td><td>Root, provider, entry, tracker — all per-visitor.</td></tr>
+            <tr><th scope="row" class="mono">createPublicPermutationHandoff</th><td class="mono">/app-router/server</td><td>Build a shareable handoff from selections you choose.</td></tr>
+            <tr><th scope="row" class="mono">OptimizationAnalyticsRoot</th><td class="mono">/app-router/server</td><td>Analytics-only routes, no personalization.</td></tr>
+            <tr><th scope="row" class="mono">useOptimizationActions</th><td class="mono">/client</td><td>Browser actions: consent, identify, track, reset, flush.</td></tr>
+            <tr><th scope="row" class="mono">bindNextjsAppRouterClientOptimization</th><td class="mono">/app-router/client</td><td>Binding for Client Components.</td></tr>
+            <tr><th scope="row" class="mono">getServerTrackingAttributes</th><td class="mono">/tracking-attributes</td><td>Tracking hooks for server-rendered markup.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ ALSO IN THE BOX ============ -->
+  <section class="band">
+    <div class="shell stack-lg">
+      <div class="part">
+        <span class="part-tag">Deliberately omitted</span>
+        <h2>Also in the box, not needed for first light</h2>
+      </div>
+      <p class="measure" style="color:var(--ink-soft)">Everything above is what a first working integration needs. These exist, are worth knowing by name, and can all wait until it renders:</p>
+      <div class="tablewrap">
+        <table>
+          <caption>Named so you recognize them later, not so you wire them now</caption>
+          <thead>
+            <tr><th scope="col">Capability</th><th scope="col">Surface</th><th scope="col">What it is</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Merge tags</th><td class="mono">isMergeTagEntry<br>getMergeTagValue</td><td>Profile-backed substitutions inside content — a first name, a city. Separate mechanism from entry replacement.</td></tr>
+            <tr><th scope="row">Custom Flags</th><td class="mono">getFlag</td><td>Read a named flag off the profile. On the server, exposure reporting needs an explicit <code>trackFlagView()</code>.</td></tr>
+            <tr><th scope="row">Interaction tracking</th><td class="mono">trackEntryInteraction</td><td>Views, clicks, and hovers on resolved entries, sent to the Insights API. <strong>Required if you want experiment results.</strong></td></tr>
+            <tr><th scope="row">Live updates</th><td class="mono">liveUpdates</td><td>Opt-in re-resolution after load, for when identity or consent changes mid-session. Not a fix for a broken first render.</td></tr>
+            <tr><th scope="row">Preview panel</th><td class="mono">optimization-web-preview-panel</td><td>A separate package. In-browser UI for impersonating audiences while testing.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="shell stack-sm">
+    <p class="eyebrow">Sources</p>
+    <p class="fine">API names and shapes verified against <code>@contentful/optimization-nextjs@1.2.0</code> as installed — its README, its <code>exports</code> map, and its emitted type declarations — rather than against prose. Cross-SDK behavior (resolution order, control-assignment semantics, the single-locale requirement, the two consent axes) from the Contentful developer documentation on entry personalization and variant resolution.</p>
+  </div>
+</footer>

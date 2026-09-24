@@ -1,0 +1,856 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Optimization SDK Boundary Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --ground: #f5f7fa;
+    --surface: #ffffff;
+    --surface-sunk: #eef1f6;
+    --ink: #12161c;
+    --ink-soft: #333c49;
+    --muted: #596373;
+    --seam: #d3dae4;
+    --seam-soft: #e3e8ef;
+    --public: #1f5fd0;
+    --public-wash: #e8effc;
+    --private: #9e4a14;
+    --private-wash: #fbeee4;
+    --alert: #a3272b;
+    --alert-wash: #fbeced;
+    --code-ground: #f0f3f8;
+
+    --display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+    --body: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+    --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0e1116;
+      --surface: #161b22;
+      --surface-sunk: #1b212a;
+      --ink: #e6eaf1;
+      --ink-soft: #c3cbd8;
+      --muted: #8e99a9;
+      --seam: #2b333e;
+      --seam-soft: #222932;
+      --public: #86aef2;
+      --public-wash: #16233a;
+      --private: #e2a068;
+      --private-wash: #33220f;
+      --alert: #ec8b8f;
+      --alert-wash: #331a1c;
+      --code-ground: #12171e;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #0e1116;
+    --surface: #161b22;
+    --surface-sunk: #1b212a;
+    --ink: #e6eaf1;
+    --ink-soft: #c3cbd8;
+    --muted: #8e99a9;
+    --seam: #2b333e;
+    --seam-soft: #222932;
+    --public: #86aef2;
+    --public-wash: #16233a;
+    --private: #e2a068;
+    --private-wash: #33220f;
+    --alert: #ec8b8f;
+    --alert-wash: #331a1c;
+    --code-ground: #12171e;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 1.0625rem;
+    line-height: 1.62;
+    font-optical-sizing: auto;
+  }
+
+  .page {
+    max-width: 66rem;
+    margin: 0 auto;
+    padding: 0 1.5rem 6rem;
+  }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    padding: 4.5rem 0 2.25rem;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 1.1rem;
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(2.4rem, 6.5vw, 3.9rem);
+    line-height: 1.02;
+    letter-spacing: -0.028em;
+    text-wrap: balance;
+    margin: 0 0 1.1rem;
+  }
+
+  .standfirst {
+    font-size: 1.24rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    max-width: 40ch;
+    margin: 0 0 2rem;
+    text-wrap: pretty;
+  }
+
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 2.25rem;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  .facts div { display: flex; gap: 0.5rem; }
+  .facts dt { color: var(--muted); opacity: 0.65; }
+  .facts dd { margin: 0; color: var(--ink-soft); }
+
+  /* ---------- legend ---------- */
+
+  .legend {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 0.75rem;
+    margin: 2.25rem 0 0;
+    padding: 1.35rem 1.4rem;
+    background: var(--surface);
+    border: 1px solid var(--seam);
+  }
+
+  .legend-intro {
+    grid-column: 1 / -1;
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  .legend-item { display: flex; gap: 0.6rem; align-items: baseline; }
+  .legend-item p { margin: 0; font-size: 0.875rem; line-height: 1.45; color: var(--ink-soft); }
+
+  /* ---------- boundary tags ---------- */
+
+  .tag {
+    display: inline-block;
+    flex: none;
+    font-family: var(--mono);
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.24em 0.55em;
+    border-radius: 2px;
+    white-space: nowrap;
+    transform: translateY(-0.05em);
+  }
+
+  .tag-public { background: var(--public-wash); color: var(--public); }
+  .tag-private { background: var(--private-wash); color: var(--private); }
+  .tag-either {
+    background: var(--surface-sunk);
+    color: var(--muted);
+    box-shadow: inset 0 0 0 1px var(--seam-soft);
+  }
+
+  /* ---------- toc ---------- */
+
+  nav.toc { margin: 2.5rem 0 0; }
+
+  nav.toc ol {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0;
+    counter-reset: toc;
+  }
+
+  nav.toc a {
+    display: block;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    color: var(--ink-soft);
+    padding: 0.42rem 0.7rem;
+    background: var(--surface);
+    border: 1px solid var(--seam);
+    transition: border-color 120ms ease, color 120ms ease;
+  }
+
+  nav.toc a:hover,
+  nav.toc a:focus-visible { border-color: var(--public); color: var(--public); }
+
+  /* ---------- the seam layout ---------- */
+
+  .block {
+    display: grid;
+    grid-template-columns: 9.5rem minmax(0, 1fr);
+    margin-top: 4.25rem;
+  }
+
+  .block > .gutter { padding-right: 1.5rem; }
+
+  .block > .flow {
+    border-left: 1px solid var(--seam);
+    padding-left: 2.25rem;
+    min-width: 0;
+  }
+
+  .gutter .eyebrow { margin: 0.5rem 0 0.6rem; }
+
+  .gutter-note {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    line-height: 1.55;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  @media (max-width: 46rem) {
+    .block { grid-template-columns: minmax(0, 1fr); }
+    .block > .gutter { padding-right: 0; }
+    .block > .flow { border-left: 0; padding-left: 0; }
+    .gutter .eyebrow { margin-bottom: 0.35rem; }
+  }
+
+  /* ---------- headings & prose ---------- */
+
+  h2 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: clamp(1.6rem, 3.4vw, 2.1rem);
+    line-height: 1.12;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin: 0 0 1.1rem;
+  }
+
+  h3 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.1rem;
+    line-height: 1.28;
+    letter-spacing: -0.008em;
+    text-wrap: balance;
+    margin: 2.5rem 0 0.7rem;
+  }
+
+  h4 {
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 2rem 0 0.6rem;
+  }
+
+  .flow > p { max-width: 66ch; margin: 0 0 1.05rem; text-wrap: pretty; }
+  .flow > ul, .flow > ol { max-width: 66ch; margin: 0 0 1.15rem; padding-left: 1.15rem; }
+  .flow li { margin-bottom: 0.5rem; }
+  .flow li > ul { margin: 0.5rem 0 0; }
+
+  strong { font-weight: 600; color: var(--ink); }
+  em { font-style: italic; }
+
+  a { color: var(--public); text-decoration-thickness: 1px; text-underline-offset: 0.16em; }
+  :focus-visible { outline: 2px solid var(--public); outline-offset: 2px; }
+
+  /* ---------- code & refs ---------- */
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.83em;
+    background: var(--code-ground);
+    padding: 0.12em 0.34em;
+    border-radius: 2px;
+    word-break: break-word;
+  }
+
+  .ref {
+    font-family: var(--mono);
+    font-size: 0.8em;
+    background: none;
+    padding: 0;
+    white-space: nowrap;
+  }
+
+  .ref-private { color: var(--private); }
+  .ref-public { color: var(--public); }
+
+  pre {
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    line-height: 1.62;
+    background: var(--code-ground);
+    border: 1px solid var(--seam-soft);
+    border-left: 3px solid var(--seam);
+    padding: 1rem 1.15rem;
+    margin: 0 0 1.3rem;
+    overflow-x: auto;
+    tab-size: 2;
+  }
+
+  pre code { background: none; padding: 0; font-size: inherit; }
+  pre.is-private { border-left-color: var(--private); }
+  pre.is-public { border-left-color: var(--public); }
+
+  figure { margin: 0 0 1.4rem; }
+
+  figcaption {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    margin: 0 0 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  /* ---------- tables ---------- */
+
+  .table-wrap { overflow-x: auto; margin: 0 0 1.5rem; border: 1px solid var(--seam); background: var(--surface); }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 34rem;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  th {
+    text-align: left;
+    font-weight: 700;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0.7rem 0.9rem;
+    border-bottom: 1px solid var(--seam);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 0.62rem 0.9rem;
+    border-bottom: 1px solid var(--seam-soft);
+    vertical-align: top;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+
+  tbody tr:last-child td { border-bottom: 0; }
+  td code { font-size: 0.95em; background: none; padding: 0; color: var(--ink); }
+  td.sym code { color: var(--ink); font-weight: 500; }
+  td.loc { white-space: nowrap; }
+  td.note { font-family: var(--body); font-size: 0.9375rem; line-height: 1.45; }
+
+  /* ---------- callouts ---------- */
+
+  .callout {
+    margin: 0 0 1.4rem;
+    padding: 1.1rem 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--seam);
+    border-left: 3px solid var(--public);
+  }
+
+  .callout.is-private { border-left-color: var(--private); }
+  .callout.is-alert { border-left-color: var(--alert); background: var(--alert-wash); }
+  .callout > :last-child { margin-bottom: 0; }
+  .callout p { margin: 0 0 0.7rem; max-width: 62ch; }
+
+  .callout-label {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin: 0 0 0.5rem;
+    color: var(--public);
+  }
+
+  .callout.is-private .callout-label { color: var(--private); }
+  .callout.is-alert .callout-label { color: var(--alert); }
+
+  /* ---------- pairing diagram ---------- */
+
+  .pairing {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: 1px;
+    background: var(--seam);
+    border: 1px solid var(--seam);
+    margin: 0 0 1.5rem;
+  }
+
+  .pairing > div { background: var(--surface); padding: 1.15rem 1.25rem; }
+  .pairing h4 { margin: 0 0 0.55rem; }
+  .pairing p { margin: 0 0 0.45rem; font-size: 0.9375rem; line-height: 1.5; }
+  .pairing p:last-child { margin-bottom: 0; }
+  .pairing .path { font-family: var(--mono); font-size: 0.78rem; }
+  .pairing .is-private-side { color: var(--private); }
+  .pairing .is-public-side { color: var(--public); }
+
+  /* ---------- numbered sequence (real order) ---------- */
+
+  ol.sequence { list-style: none; counter-reset: step; padding: 0; margin: 0 0 1.3rem; max-width: 64ch; }
+
+  ol.sequence li {
+    counter-increment: step;
+    display: grid;
+    grid-template-columns: 2.4rem minmax(0, 1fr);
+    gap: 0.5rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--seam-soft);
+    margin: 0;
+  }
+
+  ol.sequence li:last-child { border-bottom: 0; }
+
+  ol.sequence li::before {
+    content: counter(step, decimal-leading-zero);
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--muted);
+    padding-top: 0.2rem;
+  }
+
+  ol.sequence .what { font-family: var(--mono); font-size: 0.8rem; color: var(--ink); display: block; margin-bottom: 0.1rem; }
+  ol.sequence .why { font-size: 0.9375rem; color: var(--ink-soft); line-height: 1.45; }
+
+  /* ---------- footer ---------- */
+
+  footer {
+    margin-top: 5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--seam);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    line-height: 1.75;
+    color: var(--muted);
+  }
+
+  footer p { margin: 0 0 0.4rem; max-width: 70ch; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="masthead">
+  <p class="eyebrow">Contentful &middot; Optimization SDK &middot; Reference implementation review</p>
+  <h1>Optimization SDK Boundary Map</h1>
+  <p class="standfirst">Every decision in the Next.js App Router SDK comes down to one question: which side of a boundary is this code on? This is the tour.</p>
+  <dl class="facts">
+    <div><dt>impl</dt><dd>implementations/nextjs-sdk_app-router</dd></div>
+    <div><dt>adapter</dt><dd>@contentful/optimization-nextjs</dd></div>
+    <div><dt>next</dt><dd>16.2.11</dd></div>
+    <div><dt>react</dt><dd>19.2.5</dd></div>
+    <div><dt>reviewed</dt><dd>2026-08-23</dd></div>
+  </dl>
+
+  <div class="legend">
+    <p class="legend-intro">Boundary tags used throughout this page</p>
+    <div class="legend-item">
+      <span class="tag tag-private">private request</span>
+      <p>Per-visitor, request-time. Cache scope <code>private-request</code>.</p>
+    </div>
+    <div class="legend-item">
+      <span class="tag tag-public">public cached</span>
+      <p>App-owned selections, cacheable. <code>public-permutation</code> or <code>static</code>.</p>
+    </div>
+    <div class="legend-item">
+      <span class="tag tag-either">boundary</span>
+      <p>Proxy, config, or shared plumbing that serves both families.</p>
+    </div>
+  </div>
+
+  <nav class="toc" aria-label="Contents">
+    <ol>
+      <li><a href="#shape">The shape of it</a></li>
+      <li><a href="#nextjs">Next.js integration</a></li>
+      <li><a href="#surface">SDK surface inventory</a></li>
+      <li><a href="#callouts">Other callouts</a></li>
+      <li><a href="#gaps">Three honest gaps</a></li>
+      <li><a href="#order">Reading order</a></li>
+    </ol>
+  </nav>
+</header>
+
+<!-- ============ 1 ============ -->
+<section class="block" id="shape">
+  <div class="gutter">
+    <p class="eyebrow">01 &middot; Orientation</p>
+    <p class="gutter-note">Two bindings. Two route groups. The pairing is the lesson.</p>
+  </div>
+  <div class="flow">
+    <h2>The shape of it</h2>
+
+    <div class="pairing">
+      <div>
+        <h4>Server binding</h4>
+        <p class="path is-private-side">lib/optimization.ts</p>
+        <p>The only module permitted to import <code>/app-router/server</code>. Owns consent, hydration policy, handoff factories, and the proxy.</p>
+        <p><span class="tag tag-private">private request</span> <span class="tag tag-public">public cached</span></p>
+      </div>
+      <div>
+        <h4>Client binding</h4>
+        <p class="path is-public-side">lib/optimization-client.ts</p>
+        <p><code>'use client'</code>. Exists for one reason: to carry a <code>beforeInitialPage</code> callback that must never cross into the server tree.</p>
+        <p><span class="tag tag-either">boundary</span></p>
+      </div>
+      <div>
+        <h4>Request routes</h4>
+        <p class="path is-private-side">app/(request)/</p>
+        <p><code>/</code>, <code>/page-two</code>, <code>/hidden-until-ready</code>. The handoff is created for you.</p>
+        <p><span class="tag tag-private">private request</span></p>
+      </div>
+      <div>
+        <h4>Static routes</h4>
+        <p class="path is-public-side">app/(static)/</p>
+        <p>Selection handoff, analytics-only, and one static shell with a private island. You supply the selections.</p>
+        <p><span class="tag tag-public">public cached</span></p>
+      </div>
+    </div>
+
+    <p>The app-local aliases &mdash; <code>Request*</code> versus <code>Explicit*</code> &mdash; are deliberate teaching scaffolding, not house style. They encode which family a route belongs to, and TypeScript enforces the difference.</p>
+
+    <div class="callout">
+      <p class="callout-label">Start training here</p>
+      <p><code>NextjsAppRouterRequestOptimizationRootProps</code> is an <code>Omit</code> of <code>routeKey</code>, <code>handoff</code>, <code>hydration</code>, <code>buildPagePayload</code>, and <code>initialPagePayload</code>.</p>
+      <p><strong>You physically cannot hand the request root request plumbing.</strong> The explicit root requires all of it. This one type prevents the most common mistake &mdash; hand-rolling <code>cookies()</code> / <code>headers()</code> / route-key plumbing the request family already owns.</p>
+      <p><span class="ref">packages/web/frameworks/nextjs-sdk/src/bound-component-types.ts:167</span></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 2 ============ -->
+<section class="block" id="nextjs">
+  <div class="gutter">
+    <p class="eyebrow">02 &middot; Question one</p>
+    <p class="gutter-note">Caching, SSR vs CSR, and the boundary files.</p>
+  </div>
+  <div class="flow">
+    <h2>Integration with default Next.js features</h2>
+
+    <h3>Cache Components is on, and it changes the composition rules</h3>
+    <p><code>next.config.ts:8</code> sets <code>cacheComponents: true</code>. Three consequences are visible in the code.</p>
+
+    <p><strong><code>connection()</code> goes at every private boundary, not once per route.</strong> <span class="ref ref-private">app/(request)/layout.tsx:13</span> and <span class="ref ref-private">app/(static)/static-shell-private-slot/PrivateRequestSlot.tsx:11</span> each call it. <code>Suspense</code> alone does not defer a subtree to request time, and one <code>connection()</code> higher up does not cover a nested boundary. The static-shell route is the demonstration: a fully static shell with one request-time island beneath <code>Suspense</code>.</p>
+
+    <p><strong>Revalidation lives on the cached function, never on the route.</strong> <span class="ref ref-public">app/(static)/selection-handoff/[segment]/page.tsx:15-33</span> puts <code>'use cache'</code>, <code>cacheLife({ revalidate: 60 })</code>, and <code>cacheTag(...)</code> inside <code>loadSelectionHandoffPage()</code>. There is no <code>export const revalidate</code> anywhere &mdash; Cache Components ignores it.</p>
+
+    <p><strong><code>generateStaticParams()</code> and the handoff share one registry.</strong> <code>getCustomerSegmentStaticParams()</code> drives SSG params, <code>getCustomerSegment()</code> drives the handoff. One source of truth for the permutation set.</p>
+
+    <h3>The SDK cache key and the Next.js cache key are different things</h3>
+    <p>This is the highest-value caching callout on the page.</p>
+
+    <figure>
+      <figcaption><span class="tag tag-public">public cached</span> app/(static)/selection-handoff/[segment]/page.tsx:30</figcaption>
+      <pre class="is-public"><code>if (handoff.cache.tags !== undefined) cacheTag(...handoff.cache.tags)</code></pre>
+    </figure>
+
+    <p><code>handoff.cache.key</code> is SDK transport and identity metadata &mdash; rendered to the page at line 49 purely so E2E can assert on it. It is <strong>not</strong> a <code>use cache</code> key and <strong>not</strong> a <code>cacheTag()</code>. The tags are app-authored: <span class="ref ref-public">lib/optimization.ts:125-127</span> mints <code>ctfl-opt-segment:${slug}:v${cacheVersion}</code>, and the app is what carries them into Next's cache system. Nothing in the SDK does that for you.</p>
+
+    <h3>One proxy, two SDK helpers, dispatched by pathname</h3>
+
+    <figure>
+      <figcaption><span class="tag tag-either">boundary</span> lib/optimization.ts:137-143</figcaption>
+      <pre><code>export async function proxy(request: NextRequest): Promise&lt;NextResponse&gt; {
+  if (isPublicHandoffPath(request.nextUrl.pathname)) return cacheMiddleware(request)
+  return forwardOptimizationContext(request)
+}</code></pre>
+    </figure>
+
+    <ul>
+      <li>Public-permutation paths go to <code>createNextjsPublicPermutationCacheMiddleware()</code> from <code>/cache-middleware</code>, which rewrites to an SDK-owned <code>ctfl-opt-cache-key</code> query param so the CDN and Next cache split per permutation. <code>resolveCache</code> returning <code>undefined</code> for an unknown segment cleanly opts that request out.</li>
+      <li>Everything else goes to <code>createNextjsOptimizationContextHandler()</code> from <code>/request-handler</code>, which forwards sanitized request-context headers so Server Components can see the request.</li>
+    </ul>
+
+    <p><code>proxy.ts</code> is Next.js 16 naming. On 13&ndash;15 the same body lives in <code>middleware.ts</code> with a <code>middleware</code> export. Note <em>why</em> <code>proxy.ts</code> exists as a two-line file: the handler is re-exported from <code>lib/optimization.ts</code>, but <code>config.matcher</code> must be a literal array in the boundary file for Next's static analysis to see it.</p>
+
+    <h3>SSR to CSR takeover, and per-route hydration policy</h3>
+    <p><span class="ref ref-private">lib/optimization.ts:51-56</span> is the most elegant thing in the implementation.</p>
+
+    <figure>
+      <figcaption><span class="tag tag-private">private request</span> lib/optimization.ts:51-56</figcaption>
+      <pre class="is-private"><code>request: {
+  hydration: ({ routeKey }) =&gt;
+    routeKey.split('?')[0] === HIDDEN_UNTIL_READY_ROUTE
+      ? 'client-only-hidden-until-ready'
+      : 'preserve-server',
+}</code></pre>
+    </figure>
+
+    <p>Hydration policy is a pure synchronous function of <code>routeKey</code>, declared once in the binding. No route file knows or cares.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Hydration mode</th><th>First-paint owner</th><th>Browser behavior</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="sym"><code>preserve-server</code></td>
+            <td>server / static / ISR / edge markup</td>
+            <td class="note">Markup stays continuously visible while the live SDK adopts it.</td>
+          </tr>
+          <tr>
+            <td class="sym"><code>client-only-hidden-until-ready</code></td>
+            <td>browser</td>
+            <td class="note">Baseline layout target can stay hidden until selected, baseline, or fallback content commits.</td>
+          </tr>
+          <tr>
+            <td class="sym"><code>analytics-only</code></td>
+            <td>server markup</td>
+            <td class="note">Hydrates analytics state only. No content resolution context at all.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>And the route follows through: <code>/hidden-until-ready</code> renders <code>LiveEntryCard</code>, a <em>client</em> <code>OptimizedEntry</code>, rather than <code>RequestOptimizedEntry</code> &mdash; consistent with the browser owning resolution there.</p>
+
+    <h3>The server / client split follows one rule</h3>
+    <ul>
+      <li><strong>Server tree by default.</strong> <span class="ref ref-private">components/EntryCard.tsx</span> has no <code>'use client'</code> and renders <code>RequestOptimizedEntry</code> directly.</li>
+      <li><strong>Reach for the <code>/client</code> <code>OptimizedEntry</code> only</strong> when you need per-entry <code>liveUpdates</code> or <code>loadingFallback</code> &mdash; <span class="ref">components/LiveEntryCard.tsx:4,16</span>. The home page shows all three states side by side: inherit, <code>true</code>, <code>false</code>.</li>
+    </ul>
+
+    <div class="callout is-alert">
+      <p class="callout-label">Quiet footgun</p>
+      <p><code>next.config.ts:10-23</code> maps every <code>PUBLIC_*</code> var into <code>env</code>. <code>lib/config.ts</code> reads <code>process.env</code> at module scope, in a module imported by <em>both</em> server and client code. Without that <code>env</code> map the client binding silently receives an <code>undefined</code> <code>clientId</code> &mdash; no error, no warning.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3 ============ -->
+<section class="block" id="surface">
+  <div class="gutter">
+    <p class="eyebrow">03 &middot; Question two</p>
+    <p class="gutter-note">What is actually implemented, and the file it lives in.</p>
+  </div>
+  <div class="flow">
+    <h2>SDK surface inventory</h2>
+
+    <h3>Server binding &mdash; lib/optimization.ts</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Symbol</th><th>Line</th><th>Scope</th><th>Note</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="sym"><code>bindNextjsAppRouterServerOptimization()</code></td><td class="loc">:42</td><td><span class="tag tag-either">boundary</span></td><td class="note">Called once, in the only module allowed to import <code>/app-router/server</code>.</td></tr>
+          <tr><td class="sym"><code>{ request: { OptimizationRoot } }</code></td><td class="loc">:58-62</td><td><span class="tag tag-either">boundary</span></td><td class="note">Second argument: the client-root injection slot.</td></tr>
+          <tr><td class="sym"><code>optimization.request.*</code></td><td class="loc">:74-75</td><td><span class="tag tag-private">private request</span></td><td class="note">The private family: <code>OptimizationRoot</code> and <code>OptimizedEntry</code>.</td></tr>
+          <tr><td class="sym"><code>OptimizationAnalyticsRoot</code></td><td class="loc">:66</td><td><span class="tag tag-public">public cached</span></td><td class="note">Top-level, for analytics-only routes.</td></tr>
+          <tr><td class="sym"><code>ExplicitOptimizationRoot</code></td><td class="loc">:67</td><td><span class="tag tag-public">public cached</span></td><td class="note">Aliased top-level explicit-input root.</td></tr>
+          <tr><td class="sym"><code>ExplicitOptimizedEntry</code></td><td class="loc">:68</td><td><span class="tag tag-public">public cached</span></td><td class="note">Aliased top-level server entry component.</td></tr>
+          <tr><td class="sym"><code>createPublicPermutationHandoff()</code></td><td class="loc">:100, :113</td><td><span class="tag tag-public">public cached</span></td><td class="note">Wrapped into two app-level factories, content and analytics.</td></tr>
+          <tr><td class="sym"><code>createPublicPermutationCacheMetadata()</code></td><td class="loc">:86</td><td><span class="tag tag-public">public cached</span></td><td class="note">Inside <code>resolveCache</code> for the cache middleware.</td></tr>
+          <tr><td class="sym"><code>resolveEntriesForSelections()</code></td><td class="loc">:72</td><td><span class="tag tag-public">public cached</span></td><td class="note">Pure offline resolver. Used at <code>analytics-only/page.tsx:33</code>.</td></tr>
+          <tr><td class="sym"><code>getServerTrackingAttributes()</code></td><td class="loc">:76</td><td><span class="tag tag-public">public cached</span></td><td class="note">From <code>/tracking-attributes</code>. Used at <code>analytics-only/page.tsx:66</code>.</td></tr>
+          <tr><td class="sym"><code>createNextjsPublicPermutationCacheMiddleware()</code></td><td class="loc">:79</td><td><span class="tag tag-either">boundary</span></td><td class="note">From <code>/cache-middleware</code>.</td></tr>
+          <tr><td class="sym"><code>createNextjsOptimizationContextHandler()</code></td><td class="loc">:97</td><td><span class="tag tag-either">boundary</span></td><td class="note">From <code>/request-handler</code>. Called with no options here.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Config surface exercised: <code>clientId</code>, <code>environment</code>, <code>locale</code>, <code>logLevel: 'debug'</code>, <code>api.{insightsBaseUrl, experienceBaseUrl}</code>, <code>app.{name, version}</code>, <code>contentful: { client }</code>, <code>trackEntryInteraction: { views, clicks, hovers }</code>, <code>consent.{server, clientDefaults}</code>, and <code>request.hydration</code>.</p>
+
+    <div class="callout is-private">
+      <p class="callout-label">Cleanest bridge example in the repo</p>
+      <p><code>serverConsent</code> at <span class="ref ref-private">lib/optimization.ts:39-40</span> is a <code>NextjsOptimizationServerConsentResolver</code>. It receives <code>{ cookies, headers }</code> and returns either <code>false</code> or <code>{ events, persistence }</code>.</p>
+      <p>It reads the app's <em>own</em> cookie, <code>app-personalization-consent</code>. The SDK never owns your consent UX &mdash; it just asks you. Three matching readers exist: the server cookie jar (<code>util.ts:27</code>), the browser cookie (<code>util.ts:12</code>) feeding <code>clientDefaults</code>, and the reactive <code>useConsentState()</code> in <code>lib/hooks.ts:12</code>.</p>
+    </div>
+
+    <h3>Client binding &mdash; lib/optimization-client.ts</h3>
+    <p><code>bindNextjsAppRouterClientOptimization()</code> at <code>:19</code> exports <strong>only</strong> <code>RequestOptimizationRoot</code>, as <code>ClientRequestOptimizationRoot</code> (<code>:44</code>), which <code>lib/optimization.ts:60</code> injects back into the server binding.</p>
+
+    <p>This inversion deserves its own slide. The <code>beforeInitialPage.run</code> callback (<code>:32-40</code>) does browser work &mdash; reading <code>window.location.search</code>, calling <code>identify()</code> &mdash; before the root's one-time initial-page decision. The callback <strong>never crosses the server boundary</strong>; only a Client Component reference does. Both server binders declare <code>beforeInitialPage?: never</code> and reject a client config containing it, so the callback stays out of Server Components, request config, Flight data, the handoff, cache state, ISR, and Edge helpers.</p>
+
+    <p>Two consequences to teach explicitly:</p>
+    <ul>
+      <li>The injected root becomes the sole page-event owner for its subtree, so <code>RequestNextAppAutoPageTracker</code> must <strong>not</strong> be mounted. This app never imports it &mdash; correct.</li>
+      <li><code>maxWaitMs</code> (here <code>2_500</code>) is a watchdog, not a cancellation. It defaults to 3000 and synchronously throws <code>TypeError</code> on <code>0</code>, negatives, <code>NaN</code>, or <code>Infinity</code>. Return every promise from <code>run</code>; fire-and-forget work becomes "later activity" and is not waited on.</li>
+    </ul>
+
+    <h3>Browser surface &mdash; all from /client</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Hook or component</th><th>Where</th><th>What it demonstrates</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="sym"><code>useOptimization()</code></td><td class="loc">ControlPanel:16, CustomViewTracker:7</td><td class="note"><code>sdk.trackView({ componentId, viewId, viewDurationMs })</code></td></tr>
+          <tr><td class="sym"><code>useOptimizationActions()</code></td><td class="loc">ControlPanel:19, hooks:16</td><td class="note"><code>identifyUser</code>, <code>resetUser</code>, <code>setConsent</code></td></tr>
+          <tr><td class="sym"><code>useOptimizationContext()</code></td><td class="loc">hooks:59,90, PreviewPanel:8</td><td class="note">Escape hatch to the raw <code>sdk</code></td></tr>
+          <tr><td class="sym"><code>useConsentState()</code></td><td class="loc">hooks:12</td><td class="note">Reactive consent value</td></tr>
+          <tr><td class="sym"><code>useProfileState()</code></td><td class="loc">ControlPanel:21</td><td class="note"><code>profile.traits.identified</code></td></tr>
+          <tr><td class="sym"><code>useSelectedOptimizationsState()</code></td><td class="loc">ControlPanel:22</td><td class="note">Live count of applied variants</td></tr>
+          <tr><td class="sym"><code>useLiveUpdates()</code></td><td class="loc">ControlPanel:24</td><td class="note"><code>{ previewPanelVisible, setPreviewPanelVisible }</code></td></tr>
+          <tr><td class="sym"><code>LiveUpdatesProvider</code></td><td class="loc">GlobalLiveUpdatesProvider:41</td><td class="note">Wrapped in app-owned context so the UI can toggle <code>globalLiveUpdates</code></td></tr>
+          <tr><td class="sym"><code>OptimizedEntry</code></td><td class="loc">LiveEntryCard:16</td><td class="note">Per-entry <code>liveUpdates</code> override</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>The raw reactive layer is worth showing: <code>lib/hooks.ts:69</code> subscribes to <code>sdk.states.eventStream</code>, which powers the entire <code>TrackingLog</code> sidebar, and <code>:95</code> subscribes to <code>sdk.states.flag(name)</code> for feature flags. Both are plain observables with <code>.subscribe()</code> and <code>.unsubscribe()</code> &mdash; that is the extension point when the provided hooks are not enough.</p>
+
+    <h3>/api-schemas &mdash; structural guards, used for rendering</h3>
+    <p><code>components/EntryCardContent.tsx:2-9</code> imports <code>isMergeTagEntry</code>, <code>isRecord</code>, <code>isResolvedContentfulEntry</code>, <code>isRichTextDocument</code>, and <code>isUnresolvedEntryLink</code>, plus the <code>MergeTagEntry</code> type. <code>lib/customer-segments.ts:1</code> imports <code>SelectedOptimizationArray</code>.</p>
+
+    <p>The merge-tag renderer at <code>EntryCardContent.tsx:30-42</code> is the concrete payoff: a rich-text <code>INLINES.EMBEDDED_ENTRY</code> handler that narrows the node with those guards and calls <code>getMergeTagValue(target)</code> from the entry render prop. That is the whole personalized merge-tag path, in twelve lines.</p>
+  </div>
+</section>
+
+<!-- ============ 4 ============ -->
+<section class="block" id="callouts">
+  <div class="gutter">
+    <p class="eyebrow">04 &middot; Question three</p>
+    <p class="gutter-note">The subtleties that earn their place in a training session.</p>
+  </div>
+  <div class="flow">
+    <h2>Other things worth calling out</h2>
+
+    <h3>Entry-fetch ownership is a real architectural choice, shown both ways in one file</h3>
+    <p><span class="ref ref-private">components/EntryCard.tsx:22</span> takes <code>baselineEntry</code> &mdash; app-owned, via <code>loadPageEntries</code> in <code>lib/contentful.ts</code> with <code>include: 10</code> and an explicit <code>locale</code>. <span class="ref ref-private">:55</span> <code>ManagedEntryCard</code> takes <code>entryId</code> &mdash; SDK-owned, via <code>contentful: { client }</code>.</p>
+    <p>Only the SDK-managed path overlaps request initialization with the CDA read. The pairing to teach: <code>RequestOptimizationRoot prefetchManagedEntries={[entryId]}</code> at <code>PrivateRequestSlot.tsx:16</code> warms the baseline <em>and</em> merges it into the browser handoff, so the client does not repeat the fetch. A server <code>OptimizedEntry</code> alone fetches for that render only.</p>
+
+    <h3>isEmptyVariant is handled for you in one path and not the other</h3>
+    <p>In <span class="ref ref-public">analytics-only/page.tsx:60,68</span> the app must check it, because <code>resolveEntriesForSelections()</code> is a raw resolver. The same check appears inside the <code>ExplicitOptimizedEntry</code> render prop at <span class="ref ref-public">selection-handoff/page.tsx:60</span> &mdash; but <code>server-entry-renderer.tsx:95</code> returns <code>null</code> <em>before</em> invoking children, so that branch is unreachable.</p>
+    <p>Harmless, and it reads as intentional documentation. The honest teaching point: <strong>bound entry components suppress empty variants; the raw resolver does not.</strong></p>
+
+    <h3>Analytics-only routes have no entry component at all</h3>
+    <p>The cleanest illustration of the mode. Content is resolved offline inside <code>'use cache'</code>, rendered as plain markup, and the browser runtime learns what to observe purely from attributes spread onto a <code>&lt;section&gt;</code>.</p>
+
+    <figure>
+      <figcaption><span class="tag tag-public">public cached</span> app/(static)/analytics-only/[segment]/page.tsx:66</figcaption>
+      <pre class="is-public"><code>{...getServerTrackingAttributes(resolvedData.baselineEntry, resolvedData)}</code></pre>
+    </figure>
+
+    <p><code>AppShell analyticsOnly</code> swaps out the event log for that route, because there is no content-resolution context to read.</p>
+
+    <h3>Public permutations require an app-owned registry, and the SDK says so</h3>
+    <p><code>lib/customer-segments.ts</code> deep-clones fixtures into <code>{ slug, cacheVersion, locale, baselineEntryIds, selectedOptimizations }</code>. The concept doc is blunt: public and static handoffs must use app-owned selections, never request profile, cookie, or header data, and the SDK "does not discover public permutations for the application."</p>
+    <p>Note that the <code>baseline</code> segment uses <code>selectedOptimizations: []</code> &mdash; an explicit "no selection applies," which resolves baseline content with matching baseline tracking metadata. That is meaningfully different from "not configured."</p>
+
+    <h3>The preview panel is a separate, lazily-loaded package</h3>
+    <p><code>PreviewPanel.tsx:15-24</code> dynamically imports <code>@contentful/optimization-web-preview-panel</code> and the CDA client inside an effect, gated on both a feature flag and <code>sdk !== undefined</code>. That keeps the panel out of the main bundle, and it must live inside the provider subtree because it reads <code>useOptimizationContext()</code>. Both mounting sites place it immediately inside the request root.</p>
+
+    <h3>Locale discipline</h3>
+    <p><code>appConfig.locale</code> is the single source for SDK config, event context, and every CDA call (<code>lib/contentful.ts:63</code>). Entries stay single-locale &mdash; no <code>withAllLocales</code>, no <code>locale=*</code>. This is a hard repo rule because variant resolution cannot reliably resolve multi-locale entry shapes.</p>
+  </div>
+</section>
+
+<!-- ============ 5 ============ -->
+<section class="block" id="gaps">
+  <div class="gutter">
+    <p class="eyebrow">05 &middot; Gaps</p>
+    <p class="gutter-note">Useful as discussion prompts, not defects.</p>
+  </div>
+  <div class="flow">
+    <h2>Three honest gaps</h2>
+
+    <div class="callout is-alert">
+      <p class="callout-label">Unexercised surface</p>
+      <p><code>createHandoffFromSelections</code> and <code>createOptimizationCacheKey</code> are re-exported at <span class="ref">lib/optimization.ts:69-70</span> but used nowhere in the app. Available surface, unexercised here.</p>
+    </div>
+
+    <div class="callout is-alert">
+      <p class="callout-label">Deliberately off</p>
+      <p><code>request.trustedRequestHandoff</code> is not enabled &mdash; correctly, because <code>createNextjsOptimizationContextHandler()</code> is called with no options at <span class="ref">lib/optimization.ts:97</span>.</p>
+      <p>Turning it on requires configuring the handler with <code>sdk</code> and <code>consent</code>. The payoff is skipping a second <code>page()</code> call and avoiding duplicate first page events, via the forwarded <code>x-ctfl-opt-server-data</code>. Good "what's the next optimization" question for a trainee.</p>
+    </div>
+
+    <div class="callout is-alert">
+      <p class="callout-label">Not a production pattern</p>
+      <p><code>lib/contentful.ts:68-70</code> swallows CDA errors and returns <code>undefined</code> entries, which every page renders as "unavailable." Deliberate for E2E determinism, and explicitly not something to copy.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 6 ============ -->
+<section class="block" id="order">
+  <div class="gutter">
+    <p class="eyebrow">06 &middot; Curriculum</p>
+    <p class="gutter-note">This one really is a sequence &mdash; each step depends on the last.</p>
+  </div>
+  <div class="flow">
+    <h2>Reading order for a trainee</h2>
+
+    <ol class="sequence">
+      <li><span><span class="what">lib/optimization.ts</span><span class="why">The whole contract, in 168 lines.</span></span></li>
+      <li><span><span class="what">proxy.ts + next.config.ts</span><span class="why">The two boundary files. Short, and they explain each other.</span></span></li>
+      <li><span><span class="what">app/(request)/layout.tsx &rarr; components/EntryCard.tsx</span><span class="why">The private path, end to end.</span></span></li>
+      <li><span><span class="what">app/(static)/static-shell-private-slot/</span><span class="why">Cache Components composition. Read both files &mdash; the <code>connection()</code> placement is the point.</span></span></li>
+      <li><span><span class="what">app/(static)/selection-handoff/[segment]/</span><span class="why">Public permutation, plus the <code>cacheTag</code> bridge.</span></span></li>
+      <li><span><span class="what">app/(static)/analytics-only/[segment]/</span><span class="why">The no-runtime-resolution contrast.</span></span></li>
+      <li><span><span class="what">lib/optimization-client.ts</span><span class="why">The injection inversion. Last, once everything else makes sense.</span></span></li>
+    </ol>
+
+    <p>Behavior is pinned by <code>lib/e2e-web/e2e/</code>: <code>handoff</code>, <code>readiness</code>, <code>ssr</code>, <code>live-updates</code>, <code>variant-resolution</code>, <code>tracking</code>, and <code>navigation</code> specs. <code>readiness.spec.ts</code> and <code>handoff.spec.ts</code> exercise <code>beforeInitialPage</code> and the cache-key rewrite respectively, so they are the fastest way to watch the subtle parts assert themselves.</p>
+
+    <figure>
+      <figcaption><span class="tag tag-either">boundary</span> run it locally, from the monorepo root</figcaption>
+      <pre><code>pnpm build:pkgs
+pnpm implementation:run -- nextjs-sdk_app-router implementation:install
+pnpm implementation:run -- nextjs-sdk_app-router dev     # localhost:3002
+pnpm test:e2e:nextjs-sdk_app-router readiness</code></pre>
+    </figure>
+  </div>
+</section>
+
+<footer>
+  <p>Claims verified against package source under <code>packages/web/frameworks/nextjs-sdk/src</code> and <code>packages/web/frameworks/react-web-sdk/src</code>, the adapter README, <code>documentation/concepts/optimization-handoff-and-cache-safe-rendering.md</code>, and <code>documentation/guides/integrating-the-optimization-sdk-in-a-nextjs-app-router-app.md</code>.</p>
+  <p>Line numbers reflect the working tree at commit 43ed01fb and will drift as the implementation changes.</p>
+</footer>
+
+</div>
+</body>
+</html>

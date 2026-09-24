@@ -1,0 +1,1300 @@
+<title>Cache-Safe Personalization</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --ground: #F6F7F9;
+    --surface: #FFFFFF;
+    --surface-2: #EDF0F4;
+    --ink: #14171C;
+    --ink-soft: #49515D;
+    --ink-faint: #6D7683;
+    --rule: #DBE0E7;
+    --rule-strong: #C3CBD5;
+    --shared: #0B6E63;
+    --shared-bg: #E2F1EE;
+    --private: #91560A;
+    --private-bg: #FAEDDA;
+    --alert: #A32219;
+    --alert-bg: #FAE8E6;
+    --shadow: 0 1px 2px rgba(20, 23, 28, .05), 0 8px 24px -18px rgba(20, 23, 28, .35);
+
+    --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+    --font-body: "Source Sans 3", "Segoe UI", Helvetica, Arial, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --measure: 68ch;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0E1116;
+      --surface: #151A21;
+      --surface-2: #1C222B;
+      --ink: #E9EDF2;
+      --ink-soft: #A8B2BF;
+      --ink-faint: #7C8794;
+      --rule: #29313C;
+      --rule-strong: #3A4552;
+      --shared: #4FC7B5;
+      --shared-bg: #0F2F2C;
+      --private: #E0A44A;
+      --private-bg: #322510;
+      --alert: #F09086;
+      --alert-bg: #371A17;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 28px -20px rgba(0, 0, 0, .8);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #0E1116;
+    --surface: #151A21;
+    --surface-2: #1C222B;
+    --ink: #E9EDF2;
+    --ink-soft: #A8B2BF;
+    --ink-faint: #7C8794;
+    --rule: #29313C;
+    --rule-strong: #3A4552;
+    --shared: #4FC7B5;
+    --shared-bg: #0F2F2C;
+    --private: #E0A44A;
+    --private-bg: #322510;
+    --alert: #F09086;
+    --alert-bg: #371A17;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 28px -20px rgba(0, 0, 0, .8);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 24px 96px;
+  }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    padding: 72px 0 40px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .kicker {
+    font-family: var(--font-mono);
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 20px;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(2.2rem, 5.4vw, 3.4rem);
+    line-height: 1.02;
+    letter-spacing: -.028em;
+    text-wrap: balance;
+    margin: 0 0 20px;
+  }
+
+  .standfirst {
+    max-width: var(--measure);
+    font-size: 1.16rem;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  .standfirst strong { color: var(--ink); font-weight: 600; }
+
+  .masthead-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 28px;
+  }
+
+  .tag {
+    font-family: var(--font-mono);
+    font-size: .73rem;
+    letter-spacing: .02em;
+    color: var(--ink-soft);
+    background: var(--surface-2);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 4px 9px;
+  }
+
+  /* ---------- layout ---------- */
+
+  .layout { display: block; }
+
+  @media (min-width: 1060px) {
+    .layout {
+      display: grid;
+      grid-template-columns: 186px minmax(0, 1fr);
+      gap: 56px;
+      align-items: start;
+    }
+    .rail { position: sticky; top: 28px; }
+  }
+
+  .rail { padding-top: 52px; }
+
+  .rail-title {
+    font-family: var(--font-mono);
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 14px;
+  }
+
+  .rail ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border-left: 1px solid var(--rule);
+  }
+
+  .rail a {
+    display: block;
+    padding: 5px 0 5px 14px;
+    margin-left: -1px;
+    border-left: 2px solid transparent;
+    font-size: .87rem;
+    line-height: 1.35;
+    color: var(--ink-soft);
+    text-decoration: none;
+  }
+
+  .rail a:hover { color: var(--shared); border-left-color: var(--shared); }
+  .rail a:focus-visible { outline: 2px solid var(--shared); outline-offset: 2px; }
+
+  @media (max-width: 1059px) { .rail { display: none; } }
+
+  /* ---------- sections ---------- */
+
+  .band { padding-top: 56px; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: .7rem;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--shared);
+    margin: 0 0 10px;
+  }
+
+  h2 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(1.5rem, 2.9vw, 2.05rem);
+    line-height: 1.14;
+    letter-spacing: -.02em;
+    text-wrap: balance;
+    margin: 0 0 18px;
+    max-width: 34ch;
+  }
+
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.1rem;
+    letter-spacing: -.008em;
+    margin: 34px 0 10px;
+  }
+
+  .band p, .band ul, .band ol.prose { max-width: var(--measure); }
+
+  p { margin: 0 0 16px; }
+
+  ul, ol.prose { margin: 0 0 16px; padding-left: 22px; }
+  li { margin-bottom: 8px; }
+
+  a { color: var(--shared); text-underline-offset: 3px; }
+  a:focus-visible { outline: 2px solid var(--shared); outline-offset: 2px; border-radius: 2px; }
+
+  code {
+    font-family: var(--font-mono);
+    font-size: .875em;
+    background: var(--surface-2);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: .08em .34em;
+    word-break: break-word;
+  }
+
+  /* ---------- pull statement ---------- */
+
+  .thesis {
+    max-width: var(--measure);
+    margin: 8px 0 4px;
+    padding: 26px 28px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--private);
+    border-radius: 3px;
+    box-shadow: var(--shadow);
+  }
+
+  .thesis p {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.28rem;
+    line-height: 1.36;
+    letter-spacing: -.012em;
+  }
+
+  .thesis .after {
+    margin-top: 12px;
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    letter-spacing: 0;
+  }
+
+  /* ---------- tables ---------- */
+
+  .scroller {
+    overflow-x: auto;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: var(--surface);
+    margin: 22px 0;
+    box-shadow: var(--shadow);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .93rem;
+  }
+
+  caption {
+    caption-side: top;
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: .7rem;
+    font-weight: 600;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    padding: 13px 16px 11px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--surface-2);
+  }
+
+  th, td {
+    text-align: left;
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+
+  thead th {
+    font-family: var(--font-mono);
+    font-size: .71rem;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+
+  tbody tr:last-child th, tbody tr:last-child td { border-bottom: 0; }
+
+  tbody th { font-weight: 600; font-family: var(--font-body); }
+
+  .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .win { color: var(--shared); font-weight: 600; }
+  .cost { color: var(--private); font-weight: 600; }
+  .bad { color: var(--alert); font-weight: 600; }
+
+  tr.total th, tr.total td {
+    background: var(--surface-2);
+    font-weight: 700;
+  }
+
+  /* ---------- scope + primitive cards ---------- */
+
+  .cards {
+    display: grid;
+    gap: 14px;
+    margin: 22px 0;
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 720px) { .cards.trio { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 640px) { .cards.duo { grid-template-columns: repeat(2, 1fr); } }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-top: 3px solid var(--rule-strong);
+    border-radius: 3px;
+    padding: 18px 20px 20px;
+    box-shadow: var(--shadow);
+  }
+
+  .card.is-private { border-top-color: var(--private); }
+  .card.is-shared { border-top-color: var(--shared); }
+  .card.is-static { border-top-color: var(--rule-strong); }
+
+  .card .scope {
+    font-family: var(--font-mono);
+    font-size: .82rem;
+    font-weight: 600;
+    margin: 0 0 8px;
+  }
+
+  .card.is-private .scope { color: var(--private); }
+  .card.is-shared .scope { color: var(--shared); }
+  .card.is-static .scope { color: var(--ink-faint); }
+
+  .card p { font-size: .93rem; line-height: 1.55; margin: 0 0 10px; max-width: none; }
+  .card p:last-child { margin-bottom: 0; }
+  .card .rule-line { color: var(--ink-soft); }
+
+  /* ---------- two-path diagram ---------- */
+
+  .diagram {
+    margin: 26px 0;
+    display: grid;
+    gap: 14px;
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 860px) { .diagram { grid-template-columns: 1fr 1fr; } }
+
+  .lane {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .lane-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+
+  .lane-route {
+    font-family: var(--font-mono);
+    font-size: .84rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .lane-scope {
+    font-family: var(--font-mono);
+    font-size: .68rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: 3px 7px;
+    border-radius: 2px;
+  }
+
+  .lane.private .lane-scope { color: var(--private); background: var(--private-bg); }
+  .lane.shared .lane-scope { color: var(--shared); background: var(--shared-bg); }
+
+  .lane-sub { font-size: .88rem; color: var(--ink-soft); margin: 0 0 16px; }
+
+  .steps { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-direction: column; gap: 0; }
+
+  .steps li {
+    position: relative;
+    padding: 0 0 14px 26px;
+    margin: 0;
+    font-size: .9rem;
+    line-height: 1.45;
+  }
+
+  .steps li::before {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 7px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--rule-strong);
+  }
+
+  .steps li::after {
+    content: "";
+    position: absolute;
+    left: 8px;
+    top: 16px;
+    bottom: 0;
+    width: 1px;
+    background: var(--rule);
+  }
+
+  .steps li:last-child { padding-bottom: 0; }
+  .steps li:last-child::after { display: none; }
+
+  .lane.private .steps li.hot::before { background: var(--private); box-shadow: 0 0 0 4px var(--private-bg); }
+  .lane.shared .steps li.hot::before { background: var(--shared); box-shadow: 0 0 0 4px var(--shared-bg); }
+
+  .steps code { background: none; border: 0; padding: 0; font-size: .86em; color: var(--ink-soft); }
+
+  .steps .step-label { font-weight: 600; }
+
+  .lane-out {
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .lane-out .verdict { font-size: .88rem; color: var(--ink-soft); }
+  .lane-out .p50 { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 1.28rem; font-weight: 600; }
+  .lane.private .p50 { color: var(--private); }
+  .lane.shared .p50 { color: var(--shared); }
+
+  /* ---------- callouts ---------- */
+
+  .callout {
+    max-width: var(--measure);
+    margin: 24px 0;
+    padding: 18px 20px;
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--alert);
+    background: var(--alert-bg);
+    border-radius: 3px;
+  }
+
+  .callout.neutral { border-left-color: var(--shared); background: var(--shared-bg); }
+
+  .callout .callout-title {
+    font-family: var(--font-mono);
+    font-size: .7rem;
+    font-weight: 600;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    margin: 0 0 8px;
+    color: var(--alert);
+  }
+
+  .callout.neutral .callout-title { color: var(--shared); }
+
+  .callout p { margin: 0 0 10px; font-size: .95rem; max-width: none; }
+  .callout p:last-child { margin-bottom: 0; }
+
+  /* ---------- code block ---------- */
+
+  pre {
+    margin: 20px 0;
+    padding: 16px 18px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    overflow-x: auto;
+    box-shadow: var(--shadow);
+  }
+
+  pre code {
+    background: none;
+    border: 0;
+    padding: 0;
+    font-size: .85rem;
+    line-height: 1.6;
+    color: var(--ink);
+  }
+
+  .cmt { color: var(--ink-faint); }
+  .kw { color: var(--shared); font-weight: 600; }
+  .str { color: var(--private); }
+
+  /* ---------- script / talking points ---------- */
+
+  .script { max-width: var(--measure); margin: 22px 0; display: flex; flex-direction: column; gap: 2px; }
+
+  .line {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .line:last-child { border-bottom: 0; }
+
+  .line .say {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.06rem;
+    line-height: 1.42;
+    margin: 0 0 6px;
+    letter-spacing: -.008em;
+  }
+
+  .line .why { margin: 0; font-size: .93rem; color: var(--ink-soft); }
+
+  .dont { border-left: 3px solid var(--alert); padding-left: 16px; }
+  .dont .say { color: var(--alert); }
+
+  /* ---------- footer ---------- */
+
+  .colophon {
+    margin-top: 72px;
+    padding-top: 26px;
+    border-top: 1px solid var(--rule);
+    font-size: .89rem;
+    color: var(--ink-soft);
+    max-width: var(--measure);
+  }
+
+  .colophon h3 { margin-top: 0; font-size: .96rem; }
+  .colophon ul { padding-left: 20px; }
+  .colophon code { font-size: .84em; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="kicker">Field guide · Next.js 16 + Contentful Optimization SDK</p>
+    <h1>Cache-Safe Personalization</h1>
+    <p class="standfirst">
+      Everything in this guide follows from one fact: <strong>HTML personalized for one visitor
+      cannot be shared with another.</strong> Cache Components give you sharper tools for deciding
+      what gets cached — and sharper ways to get it wrong. Grounded in
+      <code>demo-optimization-sdk</code>: its three ADRs, its measurements, its stress harness.
+    </p>
+    <div class="masthead-meta">
+      <span class="tag">next 16.3 · cacheComponents: true</span>
+      <span class="tag">@contentful/optimization-nextjs 1.2</span>
+      <span class="tag">measured 2026-08-20</span>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <nav class="rail" aria-label="Sections">
+      <p class="rail-title">Contents</p>
+      <ol>
+        <li><a href="#model">What changed from unstable_cache</a></li>
+        <li><a href="#primitives">The primitives</a></li>
+        <li><a href="#boundary">The boundary rule</a></li>
+        <li><a href="#tension">Why personalization fights caching</a></li>
+        <li><a href="#paths">Two paths, one variant</a></li>
+        <li><a href="#cost">Where the time actually goes</a></li>
+        <li><a href="#resolvers">Why there are three resolvers</a></li>
+        <li><a href="#guardrails">What the SDK catches</a></li>
+        <li><a href="#silent">What nothing catches</a></li>
+        <li><a href="#outage">When the vendor goes down</a></li>
+        <li><a href="#details">Two counter-intuitive details</a></li>
+        <li><a href="#saying">Saying it to a customer</a></li>
+      </ol>
+    </nav>
+
+    <main>
+
+      <!-- ============ 1 ============ -->
+      <section class="band" id="model">
+        <p class="eyebrow">Model</p>
+        <h2>What changed from <code>unstable_cache</code></h2>
+
+        <p>
+          You already know the shape of the old model: wrap a non-<code>fetch</code> data source in
+          <code>unstable_cache</code>, hand it explicit <code>keyParts</code>, declare tags up front,
+          and invalidate with <code>revalidateTag</code>. Cache Components keep the destination and
+          change the mechanics. One directive — <code>"use cache"</code> — caches the return value of
+          any async function, and <code>cacheTag</code> / <code>cacheLife</code> are called
+          <em>inside</em> it.
+        </p>
+
+        <p>
+          That inversion is the whole story. Because the tag calls now run after the data arrives,
+          tags can reference the <em>response</em> rather than the arguments.
+        </p>
+
+        <div class="scroller">
+          <table>
+            <caption>The three limitations that forced the migration — ADR 0001</caption>
+            <thead>
+              <tr>
+                <th scope="col">Under <code>unstable_cache</code></th>
+                <th scope="col">Under Cache Components</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>The Contentful JS SDK uses Axios, not <code>fetch</code>, so the <code>next: { revalidate, tags }</code> options were unreachable. <code>unstable_cache</code> was the escape hatch, and it needed manual <code>keyParts</code>.</td>
+                <td><code>"use cache"</code> wraps any async function. The Axios/<code>fetch</code> mismatch disappears; no adapter workarounds, no hand-written key parts.</td>
+              </tr>
+              <tr>
+                <td>Tags were declared <em>before</em> the fetch, so they had to derive from arguments — in practice, the slug. Renaming a slug in Contentful stranded the cache entry behind a tag no webhook payload could ever match.</td>
+                <td>Tag by <code>sys.id</code> instead. Tag identity is stable across renames, because <code>sys.id</code> never changes.</td>
+              </tr>
+              <tr>
+                <td>Invalidating a nested entry meant the webhook handler had to rebuild the reference graph at revalidation time — a recursive walk up the tree, gated by a hard-coded content-type allowlist.</td>
+                <td>Tag every entry and asset in <code>response.includes</code> at fetch time. Any referenced-entry publish invalidates the parent page directly.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          The payoff is visible in the webhook handler, which collapsed from roughly fifty lines —
+          <code>getEntryById</code>, <code>getLinksToEntryById</code>, <code>findPageToRevalidate</code>,
+          a <code>pageContentTypes</code> allowlist — to one call:
+        </p>
+
+        <pre><code><span class="cmt">// src/app/api/revalidate/route.js — the whole invalidation strategy</span>
+revalidateTag(payload.sys.id)</code></pre>
+
+        <p>
+          A <code>cacheHandler</code> override also disappeared. It existed only to dodge the 2&nbsp;MB
+          value ceiling in <code>unstable_cache</code>; that rationale left with the primitive.
+        </p>
+
+        <h3>What the fetch layer looks like now</h3>
+
+        <pre><code><span class="cmt">// src/lib/client.js (condensed)</span>
+<span class="kw">const</span> getPublishedEntriesBySlug = <span class="kw">async</span> ({ contentType, slug, includeDepth = <span class="num">10</span> }) => {
+  <span class="str">"use cache"</span>;
+  cacheLife(<span class="str">"contentful"</span>);            <span class="cmt">// stale 300 · revalidate 900 · expire 3600</span>
+  cacheTag(<span class="str">`${contentType}:${slug}`</span>);  <span class="cmt">// so an empty result can still be invalidated</span>
+
+  <span class="kw">const</span> response = <span class="kw">await</span> client.getEntries({ content_type: contentType, include: includeDepth, ... });
+
+  <span class="cmt">// every Entry/Asset in the tree — including unresolved link stubs one level</span>
+  <span class="cmt">// deeper than `include` resolved — becomes an invalidation tag</span>
+  <span class="kw">for</span> (<span class="kw">const</span> id <span class="kw">of</span> collectContentfulIds(response)) cacheTag(id);
+
+  <span class="kw">return</span> items;
+};</code></pre>
+
+        <p>
+          One nuance worth internalizing: the public <code>getEntriesBySlug</code> is a plain dispatcher
+          that calls this only when <code>preview</code> is false. Draft reads bypass the cache
+          entirely — the Preview API must never be cached — and keeping that branch outside the
+          cached function is what lets <code>"use cache"</code> stay static.
+        </p>
+      </section>
+
+      <!-- ============ 2 ============ -->
+      <section class="band" id="primitives">
+        <p class="eyebrow">Primitives</p>
+        <h2>The five things you actually touch</h2>
+
+        <div class="scroller">
+          <table>
+            <caption>Cache Components surface used in this app</caption>
+            <thead>
+              <tr>
+                <th scope="col">Primitive</th>
+                <th scope="col">Where it goes</th>
+                <th scope="col">What it does</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row"><code>cacheComponents: true</code></th>
+                <td><code>next.config.js</code></td>
+                <td>Turns the model on. Without it, none of the rest applies.</td>
+              </tr>
+              <tr>
+                <th scope="row"><code>"use cache"</code></th>
+                <td>First line of an async function or component</td>
+                <td>Caches the return value, keyed on the arguments.</td>
+              </tr>
+              <tr>
+                <th scope="row"><code>cacheLife(profile)</code></th>
+                <td>Inside the cached function</td>
+                <td>Picks a named freshness profile. This app defines <code>"contentful"</code> in <code>next.config.js</code>.</td>
+              </tr>
+              <tr>
+                <th scope="row"><code>cacheTag(...)</code></th>
+                <td>Inside the cached function, after the data arrives</td>
+                <td>Attaches invalidation handles. This is the call that can now see the response.</td>
+              </tr>
+              <tr>
+                <th scope="row"><code>await connection()</code></th>
+                <td><code>next/server</code>, top of a request-time subtree</td>
+                <td>Declares "this is request work, do not prerender it." The one that bites — see below.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          The architectural consequence: your root layout prerenders fully, and each page becomes a
+          static shell plus a Suspense-bounded dynamic region. A route that builds as
+          <code>◐ Partial Prerender</code> is working correctly — that symbol is not a warning.
+        </p>
+      </section>
+
+      <!-- ============ 3 ============ -->
+      <section class="band" id="boundary">
+        <p class="eyebrow">Rule</p>
+        <h2>Suspense is not a request boundary</h2>
+
+        <p>
+          This is the single most expensive misunderstanding available in this stack, so it is worth
+          stating precisely. <code>&lt;Suspense&gt;</code> controls <em>streaming</em>. It does not
+          control whether a value may be <em>prerendered</em>. Awaiting <code>draftMode()</code>
+          nearby does not either. Only an explicit dynamic data access —
+          <code>await connection()</code> — moves a subtree to request time.
+        </p>
+
+        <p>
+          It surfaces here because the Optimization SDK builds event payloads that stamp
+          <code>new Date().toISOString()</code>. Next.js refuses to prerender an unstable value:
+        </p>
+
+        <pre><code>Route "/[slug]": Next.js encountered the unstable value `new Date()` while prerendering.</code></pre>
+
+        <div class="callout">
+          <p class="callout-title">Why this one hides</p>
+          <p>
+            The route still returns <strong>HTTP 200</strong> while logging that error, and the error
+            lands in <code>.next/dev/logs/next-development.log</code> rather than your terminal. A
+            broken prerender looks like a working page.
+          </p>
+        </div>
+
+        <p>
+          And it is <strong>per boundary, not per app</strong>. Each Suspense boundary is prerendered
+          independently, so a <code>connection()</code> call in a layout does not cover a page's own
+          boundary. In this repo that lesson is now baked into the structure: personalization was
+          deliberately consolidated from two nested boundaries into a single private slot, so there is
+          exactly one boundary, one <code>connection()</code> call, and one place to get it right.
+        </p>
+
+        <pre><code><span class="cmt">// src/app/[slug]/PrivateRequestSlot.jsx</span>
+<span class="kw">export const</span> PrivateRequestSlot = <span class="kw">async</span> ({ params }) => {
+  <span class="kw">await</span> connection();  <span class="cmt">// ← everything visitor-specific lives below this line</span>
+  ...
+};</code></pre>
+
+        <p>
+          If you add a new Suspense boundary that renders the optimization root or an optimized entry,
+          it needs its own call.
+        </p>
+      </section>
+
+      <!-- ============ 4 ============ -->
+      <section class="band" id="tension">
+        <p class="eyebrow">Tension</p>
+        <h2>Why personalization fights caching</h2>
+
+        <div class="thesis">
+          <p>Personalized HTML resolved per visitor cannot be shared.</p>
+          <p class="after">
+            Server-side resolution buys something real — the visitor's variant is in the initial HTML,
+            so there is no flash of baseline content and no post-hydration swap. The cost is that the
+            output is now specific to one person, and a shared cache is a machine for giving one
+            person's output to somebody else.
+          </p>
+        </div>
+
+        <p>
+          The SDK makes this explicit rather than implicit. Every render produces a
+          <em>handoff</em> carrying a <strong>cache scope</strong> — an SDK-owned exact value, not an
+          app convention. Learn these three and most of the model follows.
+        </p>
+
+        <div class="cards trio">
+          <div class="card is-private">
+            <p class="scope">private-request</p>
+            <p>A real request backed by cookies, headers, or an Experience API response for one visitor.</p>
+            <p class="rule-line"><strong>Rule:</strong> keep the output out of shared caches.</p>
+          </div>
+          <div class="card is-shared">
+            <p class="scope">public-permutation</p>
+            <p>An app-owned segment, market, campaign, or path where application code already chose the selections.</p>
+            <p class="rule-line"><strong>Rule:</strong> must carry a helper-built <code>cache.key</code>.</p>
+          </div>
+          <div class="card is-static">
+            <p class="scope">static</p>
+            <p>Build-time output with no profile state in it at all.</p>
+            <p class="rule-line"><strong>Rule:</strong> no profile state.</p>
+          </div>
+        </div>
+
+        <p>
+          The insight that makes the rest of this guide make sense: <em>who chose the variant</em>
+          determines whether the HTML can be shared. If the Experience API chose it for this visitor,
+          it is private. If your application chose it from its own registry, it is shareable — because
+          every visitor asking for that permutation gets byte-identical output.
+        </p>
+      </section>
+
+      <!-- ============ 5 ============ -->
+      <section class="band" id="paths">
+        <p class="eyebrow">Paths</p>
+        <h2>Two paths, one variant</h2>
+
+        <p>
+          This repo runs both models deliberately, on separate routes, and chooses per route. Same
+          content, same resolved variant, radically different cost and risk.
+        </p>
+
+        <div class="diagram">
+          <div class="lane private">
+            <div class="lane-head">
+              <span class="lane-route">/[slug]</span>
+              <span class="lane-scope">private-request</span>
+            </div>
+            <p class="lane-sub">The Experience API decides, per visitor.</p>
+            <ol class="steps">
+              <li><span class="step-label">1 · Proxy forwards context</span><br><code>src/proxy.js</code> — URL, headers, cookies</li>
+              <li><span class="step-label">2 · Private slot opens</span><br><code>await connection()</code> marks request work</li>
+              <li><span class="step-label">3 · Content fetch</span><br>cached, <code>0.3–0.7ms</code></li>
+              <li class="hot"><span class="step-label">4 · Experience API round trip</span><br>awaited during render — the whole cost</li>
+              <li><span class="step-label">5 · Variant in initial HTML</span><br>no flash, no swap</li>
+            </ol>
+            <div class="lane-out">
+              <span class="verdict">Cannot be shared</span>
+              <span class="p50">96ms</span>
+            </div>
+          </div>
+
+          <div class="lane shared">
+            <div class="lane-head">
+              <span class="lane-route">/cached/[permutation]/[slug]</span>
+              <span class="lane-scope">public-permutation</span>
+            </div>
+            <p class="lane-sub">The application decides, from its own registry.</p>
+            <ol class="steps">
+              <li><span class="step-label">1 · Proxy deliberately skips it</span><br>matcher excludes <code>cached</code></li>
+              <li><span class="step-label">2 · Params resolved thinly</span><br>own boundary, two strings only</li>
+              <li class="hot"><span class="step-label">3 · Cached render</span><br><code>"use cache"</code> + <code>cacheLife</code> + <code>cacheTag</code></li>
+              <li><span class="step-label">4 · Selections read from code</span><br><code>src/lib/permutations.js</code></li>
+              <li><span class="step-label">5 · Byte-identical HTML</span><br>no Experience API on the render path</li>
+            </ol>
+            <div class="lane-out">
+              <span class="verdict">Shared across visitors</span>
+              <span class="p50">8ms</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout neutral">
+          <p class="callout-title">The counter-intuitive line in proxy.js</p>
+          <p>
+            The proxy matcher <em>excludes</em> the cached route. That looks like an oversight and is
+            the opposite: withholding per-visitor request context from that route is precisely what
+            keeps its output shareable. Do not "fix" it.
+          </p>
+        </div>
+
+        <div class="scroller">
+          <table>
+            <caption>Measured on this app, production build, warm cache</caption>
+            <thead>
+              <tr>
+                <th scope="col"></th>
+                <th scope="col">private-request</th>
+                <th scope="col">public-permutation</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">p50</th>
+                <td class="num cost">96ms <span class="cmt">(158ms under load)</span></td>
+                <td class="num win">8ms <span class="cmt">(24ms under load)</span></td>
+              </tr>
+              <tr>
+                <th scope="row">p95 under load</th>
+                <td class="num cost">282ms</td>
+                <td class="num win">26ms</td>
+              </tr>
+              <tr>
+                <th scope="row">Hero variant</th>
+                <td>correct</td>
+                <td>correct — identical</td>
+              </tr>
+              <tr>
+                <th scope="row">Profile state in HTML</th>
+                <td>yes</td>
+                <td class="win">none</td>
+              </tr>
+              <tr>
+                <th scope="row">Shared across visitors</th>
+                <td class="bad">no</td>
+                <td class="win">yes, byte-identical</td>
+              </tr>
+              <tr>
+                <th scope="row">Experience API outage</th>
+                <td class="bad">renders no content</td>
+                <td class="win">unaffected</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          Roughly <strong>6.5× at p50 and 10× at p95</strong>, rendering the same variant. The price is
+          that permutations are enumerated by hand, and the cost is combinatorial in audience count —
+          fine for a handful of segments, wrong for per-user personalization.
+        </p>
+
+        <p>
+          The models cannot be layered. Request-derived profile handoffs are <code>private-request</code>
+          only, so this is a per-route either/or.
+        </p>
+      </section>
+
+      <!-- ============ 6 ============ -->
+      <section class="band" id="cost">
+        <p class="eyebrow">Cost</p>
+        <h2>Where the time actually goes</h2>
+
+        <p>
+          Worth knowing because the instinct is to blame payload size, and the instinct is wrong.
+          Server-side segments inside the private slot, warm:
+        </p>
+
+        <div class="scroller">
+          <table>
+            <caption>Private-slot segment timing</caption>
+            <thead>
+              <tr><th scope="col">Segment</th><th scope="col">Time</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row"><code>await connection()</code></th><td class="num">0.6–1.3ms</td></tr>
+              <tr><th scope="row"><code>params</code> + <code>draftMode()</code></th><td class="num">~0ms</td></tr>
+              <tr><th scope="row"><code>getEntriesBySlug</code> (cached)</th><td class="num">0.3–0.7ms</td></tr>
+              <tr class="total"><th scope="row">Total in-component work</th><td class="num">1.0–2.0ms</td></tr>
+              <tr class="total"><th scope="row">Actual response</th><td class="num cost">~96ms</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          Point the SDK at an unreachable Experience API and the response collapses to
+          <strong>~11ms</strong>. Cold TLS to <code>experience.ninetailed.co</code> alone measures
+          56–80ms from a developer machine. <strong>Essentially all per-request latency is one live
+          Experience API round trip</strong>, awaited during the optimized-entry render. On this path
+          it is irreducible — that call is how the visitor's profile and selected optimizations are
+          obtained.
+        </p>
+
+        <h3>Three plausible wrong turns, already taken</h3>
+
+        <p>Each was tested and discarded. Recorded so nobody re-litigates them:</p>
+
+        <ul>
+          <li><strong>The <code>include: 10</code> payload is expensive to deserialize.</strong> False — timing is flat within noise from depth 10 down to 2, and response bytes are identical.</li>
+          <li><strong>The request handler is misconfigured, breaking profile continuity.</strong> False — the no-argument forwarding handler is the documented default; the request family evaluates the request itself.</li>
+          <li><strong>The Contentful fetch is the cost.</strong> False — it measures 0.3–0.7ms through the existing <code>"use cache"</code> layer.</li>
+        </ul>
+      </section>
+
+      <!-- ============ 7 ============ -->
+      <section class="band" id="resolvers">
+        <p class="eyebrow">Structure</p>
+        <h2>Why there are three resolvers</h2>
+
+        <p>
+          A detail that looks like duplication and is actually the architecture. The component that
+          wraps an entry differs by <em>cache ownership</em>, and cache ownership cannot be decided at
+          runtime — <code>"use client"</code> is a bundler input, not a runtime switch. So the fork is
+          structural.
+        </p>
+
+        <div class="scroller">
+          <table>
+            <caption>One entry boundary, three cache owners</caption>
+            <thead>
+              <tr>
+                <th scope="col">Resolver</th>
+                <th scope="col">Runs</th>
+                <th scope="col">Path</th>
+                <th scope="col">SDK surface</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row"><code>ComponentResolver</code></th>
+                <td>Server</td>
+                <td>Published</td>
+                <td><code>RequestOptimizedEntry</code></td>
+              </tr>
+              <tr>
+                <th scope="row"><code>LivePreviewResolver</code></th>
+                <td>Client</td>
+                <td>Draft</td>
+                <td>unbound <code>/client</code> entry — the only one taking per-entry <code>liveUpdates</code></td>
+              </tr>
+              <tr>
+                <th scope="row"><code>PermutationResolver</code></th>
+                <td>Server, cached</td>
+                <td>Permutation</td>
+                <td><code>ExplicitOptimizedEntry</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          The reason it is worth the duplication: the published path ships <strong>zero Live Preview
+          JavaScript</strong>. Before the split, every cached page render shipped a live-updates
+          subscription that only ever mattered in draft mode.
+        </p>
+
+        <div class="callout">
+          <p class="callout-title">The maintenance tax</p>
+          <p>
+            Anything applied at the entry boundary must be applied in <strong>all three</strong>.
+            The live example is empty-variant suppression: when an author chooses to show nothing to
+            an audience, the SDK still hands back the baseline entry so tracking has context. Render
+            it unconditionally and you show the baseline exactly where the author chose silence. Every
+            resolver has to check <code>resolvedData.isEmptyVariant</code> for itself.
+          </p>
+        </div>
+      </section>
+
+      <!-- ============ 8 ============ -->
+      <section class="band" id="guardrails">
+        <p class="eyebrow">Guardrails</p>
+        <h2>What the SDK catches for you</h2>
+
+        <p>
+          Genuine good news, and the honest framing for a customer conversation: cache-safety mistakes
+          <em>inside</em> the SDK's reach are loud. It throws rather than degrading quietly.
+        </p>
+
+        <div class="scroller">
+          <table>
+            <caption>Loud failures — the SDK throws or warns</caption>
+            <thead>
+              <tr><th scope="col">Mistake</th><th scope="col">Result</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Profile state in a public or static handoff</th>
+                <td><code>TypeError: Profile state should not be included in public or static optimization caches.</code></td>
+              </tr>
+              <tr>
+                <th scope="row">Public permutation without a cache key</th>
+                <td>Warning — <code>missing-public-permutation-cache-key</code></td>
+              </tr>
+              <tr>
+                <th scope="row">Public/static cache metadata passed to a request handoff helper</th>
+                <td><code>TypeError</code></td>
+              </tr>
+              <tr>
+                <th scope="row">Missing or misnamed request handler</th>
+                <td>The bound root throws. Note it does <strong>not</strong> fall back to baseline.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          Two functions make this testable rather than aspirational:
+          <code>getOptimizationCacheSafetyWarnings()</code> and
+          <code>assertOptimizationCacheSafety()</code>. Both are exercised directly by
+          <code>npm run stress</code>, which is 14 checks covering every number and symptom in this
+          guide.
+        </p>
+      </section>
+
+      <!-- ============ 9 ============ -->
+      <section class="band" id="silent">
+        <p class="eyebrow">Guardrails</p>
+        <h2>What nothing catches</h2>
+
+        <p>
+          The more important table. Every row here returns <strong>HTTP 200</strong> and looks like a
+          working page. If you internalize one section of this guide, make it this one.
+        </p>
+
+        <div class="scroller">
+          <table>
+            <caption>Silent failures — no error, no warning</caption>
+            <thead>
+              <tr><th scope="col">Mistake</th><th scope="col">Symptom</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Framework or CDN caching over a personalized route <span class="cmt">— full-route cache, <code>s-maxage</code>, <code>generateStaticParams</code></span></th>
+                <td class="bad">One visitor's variant, flags, merge tags, and profile served to another. Demonstrated in the stress harness: a URL-keyed cache in front of <code>/[slug]</code> hands visitor A's profile id to visitor B. The application is correct; the cache in front of it is not.</td>
+              </tr>
+              <tr>
+                <th scope="row">Include depth too shallow</th>
+                <td>The variant silently vanishes. At depth 2 here: HTTP 200, images intact, <code>variantIndex</code> quietly collapses to 0.</td>
+              </tr>
+              <tr>
+                <th scope="row">Missing <code>connection()</code> under Cache Components</th>
+                <td>Prerender error logged to a file while the route still serves 200.</td>
+              </tr>
+              <tr>
+                <th scope="row">All-locale payload <span class="cmt">— <code>withAllLocales</code>, <code>locale=*</code></span></th>
+                <td>Locale-keyed field maps do not match the resolver schema. Silent baseline fallback.</td>
+              </tr>
+              <tr>
+                <th scope="row">Unpublished experience or variant</th>
+                <td>Silent baseline. Publish order matters: variants → experiences → baseline entry.</td>
+              </tr>
+              <tr>
+                <th scope="row">Empty variant not suppressed</th>
+                <td>The baseline renders where the author chose to render nothing.</td>
+              </tr>
+              <tr>
+                <th scope="row">Experience API outage</th>
+                <td class="bad">The personalized region renders empty. See below.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout">
+          <p class="callout-title">The one that matters most</p>
+          <p>
+            That first row is the row to raise in every architecture review. Correct application code
+            plus one well-meant CDN rule equals cross-visitor profile leakage — and nothing in the
+            stack will tell you. Personalized routes must be excluded from shared caching by explicit
+            decision, written down, owned by someone.
+          </p>
+        </div>
+      </section>
+
+      <!-- ============ 10 ============ -->
+      <section class="band" id="outage">
+        <p class="eyebrow">Failure</p>
+        <h2>A personalization outage is a content outage</h2>
+
+        <p>
+          Measured, not theorized. With the Experience API returning 503, the private-request path
+          serves HTTP 200 and an 11.5&nbsp;KB shell: no <code>&lt;h1&gt;</code>, no images, zero
+          <code>data-ctfl</code> attributes. The SDK throws on an unretryable failure, the error
+          escapes the private slot, and the visitor gets a blank region.
+        </p>
+
+        <p>
+          <strong>This is not a graceful fallback to baseline.</strong> Anyone adopting SSR
+          personalization should hear that sentence plainly, early, from you rather than from an
+          incident. Two mitigations, both real:
+        </p>
+
+        <ul>
+          <li>An <strong>error boundary</strong> around the personalized region that renders baseline content.</li>
+          <li>Move the route to the <strong>permutation path</strong>, which is unaffected because the Experience API is not on its render path at all.</li>
+        </ul>
+      </section>
+
+      <!-- ============ 11 ============ -->
+      <section class="band" id="details">
+        <p class="eyebrow">Detail</p>
+        <h2>Two counter-intuitive details</h2>
+
+        <div class="cards duo">
+          <div class="card is-shared">
+            <p class="scope">Include depth is topology-dependent</p>
+            <p>
+              The link chain here implies a floor of 5
+              (<code>landingPage → hero → nt_experience → variant → mediaWrapper → asset</code>), but
+              the empirical floor is <strong>3</strong> — Contentful resolves links from a flat
+              <code>includes</code> pool, so the variant reuses assets already pooled via the baseline
+              path.
+            </p>
+            <p class="rule-line">
+              A variant with its own deeper content would break at 3 with no error. That is why
+              <code>include: 10</code> is kept even though it measures no cost: the headroom is the
+              point.
+            </p>
+          </div>
+          <div class="card is-private">
+            <p class="scope">handoff.cache.key is not a cache key</p>
+            <p>
+              Despite the name, it is not a Next.js cache key and not a
+              <code>cacheTag</code>/<code>revalidateTag</code> tag. It is deterministic SDK identity
+              and transport metadata.
+            </p>
+            <p class="rule-line">
+              Consequence with teeth: Custom Flag <code>changes</code> are carried in handoff state but
+              are <strong>not</strong> fingerprinted into it. A flag whose value affects markup must be
+              represented through the app-owned <code>cacheVersion</code> instead, or you will serve
+              stale markup with a fresh flag.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 12 ============ -->
+      <section class="band" id="saying">
+        <p class="eyebrow">Practice</p>
+        <h2>Saying it to a customer</h2>
+
+        <p>
+          Lines that are both true and useful, in roughly the order a conversation tends to need them.
+        </p>
+
+        <div class="script">
+          <div class="line">
+            <p class="say">"Server-side personalization removes the flash of wrong content. It costs you a shared cache."</p>
+            <p class="why">The whole tradeoff in two sentences. Everything technical follows from it, and it reframes the conversation from "is this fast" to "who is this HTML for."</p>
+          </div>
+          <div class="line">
+            <p class="say">"Decide it per route, not per project."</p>
+            <p class="why">Above-the-fold hero: resolve per visitor, accept the round trip. Below-the-fold or non-critical: client-side is fine, the flash costs nothing. Known segments rather than individuals: permutations, and get an order of magnitude back.</p>
+          </div>
+          <div class="line">
+            <p class="say">"If your application picks the variant, the page is still cacheable."</p>
+            <p class="why">The unlock most people miss. Personalization does not have to mean uncacheable — it means uncacheable when a per-visitor API call chose the variant.</p>
+          </div>
+          <div class="line">
+            <p class="say">"The dangerous failure is a CDN rule, not code."</p>
+            <p class="why">Names the real risk and puts it where it belongs: infrastructure review, not the developers. It also earns trust, because it is not the answer a vendor is expected to give.</p>
+          </div>
+          <div class="line">
+            <p class="say">"On the SSR path, treat a personalization outage as a content outage — and put an error boundary in."</p>
+            <p class="why">Say it before go-live. It is measured behavior, it has a cheap fix, and it is far better coming from you in design than from an incident review.</p>
+          </div>
+          <div class="line dont">
+            <p class="say">Don't say: "personalization adds about 96 milliseconds."</p>
+            <p class="why">Those numbers are from one app, one content graph, one warm cache, on a developer machine — illustrative of <em>shape</em>, not benchmarks. Say "essentially all of the added latency is one round trip to the personalization API, so it scales with that call, not with your content" — same insight, defensible anywhere.</p>
+          </div>
+        </div>
+      </section>
+
+      <footer class="colophon">
+        <h3>Where this comes from</h3>
+        <ul>
+          <li><code>docs/adr/0001-cache-components-migration.md</code> — the <code>unstable_cache</code> → Cache Components migration and its consequences.</li>
+          <li><code>docs/adr/0002-split-resolver-rsc-client.md</code> — why the resolver splits by render path.</li>
+          <li><code>docs/adr/0003-personalization-caching-tradeoffs.md</code> — cache scopes, the measurements, the failure tables.</li>
+          <li><code>npm run stress</code> — the 14 checks that reproduce every number and symptom above.</li>
+        </ul>
+        <p>
+          All measurements: production build, warm cache, single app and content graph, 2026-08-20.
+          Treat them as shape, not as benchmarks.
+        </p>
+      </footer>
+
+    </main>
+  </div>
+</div>

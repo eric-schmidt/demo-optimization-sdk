@@ -1,0 +1,963 @@
+<title>The Optimization SDK Boundary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+  /* ============ TOKENS — complete light palette on bare :root ============ */
+  :root {
+    --paper:        #f4f6f6;
+    --surface:      #ffffff;
+    --surface-sunk: #eaeeee;
+    --ink:          #151b21;
+    --ink-soft:     #3c4750;
+    --ink-mute:     #5f6d74;
+    --rule:         #d3dbdb;
+    --rule-soft:    #e3e9e9;
+
+    /* Domain hues — these ARE the taxonomy, not decoration */
+    --server:       #0c6a6f;
+    --server-bg:    #e2f0f0;
+    --server-rule:  #a9cfd0;
+    --client:       #9d6410;
+    --client-bg:    #f8eedd;
+    --client-rule:  #dfc394;
+    --edge:         #574d84;
+    --edge-bg:      #eceaf5;
+    --edge-rule:    #bcb4d9;
+
+    --warn:         #9a4a20;
+    --warn-bg:      #f9e9e1;
+
+    --shadow:       0 1px 2px rgba(21,27,33,.05), 0 8px 24px -12px rgba(21,27,33,.14);
+
+    --measure:      68ch;
+    --step--1:      .8125rem;
+    --step-0:       1.0625rem;
+    --step-1:       1.1875rem;
+    --step-2:       clamp(1.35rem, 2.4vw, 1.6rem);
+    --step-3:       clamp(1.7rem, 3.4vw, 2.15rem);
+    --step-4:       clamp(2.3rem, 5.4vw, 3.5rem);
+
+    --display: "Archivo", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --body:    "Source Serif 4", Georgia, "Times New Roman", serif;
+    --mono:    "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:        #10151a;
+      --surface:      #171e24;
+      --surface-sunk: #1e262d;
+      --ink:          #e8edee;
+      --ink-soft:     #c0cacd;
+      --ink-mute:     #8a999f;
+      --rule:         #2c363d;
+      --rule-soft:    #232c33;
+
+      --server:       #56b8bd;
+      --server-bg:    #10322f;
+      --server-rule:  #2c5a58;
+      --client:       #dfa445;
+      --client-bg:    #33270f;
+      --client-rule:  #5f4a1e;
+      --edge:         #a79ada;
+      --edge-bg:      #232045;
+      --edge-rule:    #423c6b;
+
+      --warn:         #dd9269;
+      --warn-bg:      #331d13;
+
+      --shadow:       0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:        #10151a;
+    --surface:      #171e24;
+    --surface-sunk: #1e262d;
+    --ink:          #e8edee;
+    --ink-soft:     #c0cacd;
+    --ink-mute:     #8a999f;
+    --rule:         #2c363d;
+    --rule-soft:    #232c33;
+
+    --server:       #56b8bd;
+    --server-bg:    #10322f;
+    --server-rule:  #2c5a58;
+    --client:       #dfa445;
+    --client-bg:    #33270f;
+    --client-rule:  #5f4a1e;
+    --edge:         #a79ada;
+    --edge-bg:      #232045;
+    --edge-rule:    #423c6b;
+
+    --warn:         #dd9269;
+    --warn-bg:      #331d13;
+
+    --shadow:       0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+
+  /* ============ BASE ============ */
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: var(--step-0);
+    line-height: 1.68;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--server);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  }
+
+  html { scroll-behavior: smooth; }
+
+  /* ============ LAYOUT ============ */
+  .shell { max-width: 1100px; margin: 0 auto; padding: 0 clamp(1.1rem, 4vw, 2.75rem); }
+  .col   { max-width: var(--measure); }
+  /* For scannable lists and code rather than running prose, where the strict
+     reading measure is tighter than the content wants. */
+  .col-wide { max-width: 84ch; }
+
+  main > section { padding-block: clamp(2.75rem, 6vw, 4.5rem); border-top: 1px solid var(--rule-soft); }
+  main > section:first-of-type { border-top: 0; }
+
+  .stack     { display: flex; flex-direction: column; gap: 1.15rem; }
+  .stack-lg  { display: flex; flex-direction: column; gap: 2rem; }
+  .stack-sm  { display: flex; flex-direction: column; gap: .6rem; }
+
+  /* ============ TYPE ============ */
+  h1, h2, h3, h4 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.15; }
+  h1 { font-size: var(--step-4); font-weight: 700; letter-spacing: -.025em; }
+  h2 { font-size: var(--step-3); font-weight: 700; letter-spacing: -.018em; }
+  h3 { font-size: var(--step-1); font-weight: 600; letter-spacing: -.008em; }
+  h4 { font-size: .95rem; font-weight: 600; }
+  p  { margin: 0; }
+  a  { color: var(--server); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+  .eyebrow {
+    font-family: var(--display);
+    font-size: .7rem;
+    font-weight: 600;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+
+  .lede { font-size: var(--step-1); color: var(--ink-soft); }
+  .fine { font-size: var(--step--1); color: var(--ink-mute); line-height: 1.6; }
+
+  code, .mono { font-family: var(--mono); font-size: .875em; font-variant-ligatures: none; }
+  :not(pre) > code {
+    background: var(--surface-sunk);
+    padding: .1em .35em;
+    border-radius: 3px;
+    color: var(--ink);
+  }
+
+  ul, ol { margin: 0; padding-left: 1.25rem; }
+  li + li { margin-top: .4rem; }
+  li::marker { color: var(--ink-mute); }
+
+  /* ============ HEADER ============ */
+  header.hero { padding-block: clamp(3rem, 8vw, 5.5rem) clamp(2rem, 5vw, 3rem); }
+  .hero-rule {
+    height: 5px; width: 100%;
+    background: linear-gradient(90deg, var(--server) 0 38%, var(--client) 38% 76%, var(--edge) 76% 100%);
+    margin-bottom: clamp(1.75rem, 4vw, 2.5rem);
+  }
+  .meta-strip {
+    display: flex; flex-wrap: wrap; gap: .5rem .75rem;
+    margin-top: 1.75rem; padding-top: 1.25rem;
+    border-top: 1px solid var(--rule);
+  }
+  .chip {
+    font-family: var(--mono); font-size: .74rem; font-weight: 500;
+    padding: .3rem .6rem; border-radius: 3px;
+    background: var(--surface-sunk); color: var(--ink-soft);
+    border: 1px solid var(--rule-soft);
+  }
+
+  /* ============ NAV ============ */
+  nav.jump {
+    position: sticky; top: 0; z-index: 20;
+    background: var(--paper);
+    backdrop-filter: blur(8px);
+    border-block: 1px solid var(--rule-soft);
+  }
+  @supports (background: color-mix(in srgb, red 50%, transparent)) {
+    nav.jump { background: color-mix(in srgb, var(--paper) 92%, transparent); }
+  }
+  nav.jump ol {
+    list-style: none; margin: 0; padding: 0;
+    display: flex; gap: 0; overflow-x: auto;
+    font-family: var(--display); font-size: .76rem; font-weight: 600;
+    letter-spacing: .04em; text-transform: uppercase;
+  }
+  nav.jump li { margin: 0; flex: none; }
+  nav.jump a {
+    display: block; padding: .8rem .95rem;
+    color: var(--ink-mute); text-decoration: none; white-space: nowrap;
+    border-bottom: 2px solid transparent;
+  }
+  nav.jump a:hover { color: var(--ink); border-bottom-color: var(--rule); }
+
+  /* ============ DOMAIN CARDS ============ */
+  .split { display: grid; gap: 1.25rem; grid-template-columns: 1fr; }
+  @media (min-width: 62rem) { .split { grid-template-columns: 1fr 1fr; } }
+
+  .domain {
+    border: 1px solid var(--rule);
+    border-top-width: 3px;
+    background: var(--surface);
+    border-radius: 4px;
+    padding: 1.35rem 1.4rem 1.5rem;
+    box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: .9rem;
+  }
+  .domain.is-server { border-top-color: var(--server); }
+  .domain.is-client { border-top-color: var(--client); }
+  .domain.is-edge   { border-top-color: var(--edge); }
+
+  .domain-tag {
+    font-family: var(--display); font-size: .7rem; font-weight: 700;
+    letter-spacing: .13em; text-transform: uppercase;
+  }
+  .is-server .domain-tag { color: var(--server); }
+  .is-client .domain-tag { color: var(--client); }
+  .is-edge   .domain-tag { color: var(--edge); }
+
+  .domain h3 { margin-bottom: -.35rem; }
+
+  .pkg {
+    font-family: var(--mono); font-size: .78rem; font-weight: 500;
+    display: inline-block; padding: .28rem .5rem; border-radius: 3px;
+    word-break: break-all;
+  }
+  .is-server .pkg { background: var(--server-bg); color: var(--server); border: 1px solid var(--server-rule); }
+  .is-client .pkg { background: var(--client-bg); color: var(--client); border: 1px solid var(--client-rule); }
+  .is-edge   .pkg { background: var(--edge-bg);   color: var(--edge);   border: 1px solid var(--edge-rule); }
+
+  /* ============ PRIMITIVE LIST ============ */
+  dl.prims { margin: 0; display: flex; flex-direction: column; gap: .85rem; }
+  dl.prims > div { display: flex; flex-direction: column; gap: .15rem; }
+  dl.prims dt { font-family: var(--mono); font-size: .82rem; font-weight: 600; color: var(--ink); }
+  dl.prims dd { margin: 0; font-size: .95rem; color: var(--ink-soft); line-height: 1.55; }
+
+  /* ============ TABLES ============ */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 40rem; font-size: .92rem; }
+  caption { text-align: left; padding: .9rem 1rem; font-family: var(--display); font-size: .82rem; font-weight: 600; color: var(--ink-mute); border-bottom: 1px solid var(--rule-soft); }
+  th, td { text-align: left; padding: .7rem 1rem; border-top: 1px solid var(--rule-soft); vertical-align: top; line-height: 1.5; }
+  thead th {
+    font-family: var(--display); font-size: .7rem; font-weight: 700;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--ink-mute);
+    background: var(--surface-sunk); border-top: 0;
+  }
+  tbody th { font-family: var(--display); font-weight: 600; font-size: .9rem; white-space: nowrap; }
+  td.mono, th.mono { font-family: var(--mono); font-size: .8rem; }
+  .tick { color: var(--server); font-weight: 600; }
+  .cross { color: var(--ink-mute); }
+
+  /* ============ CODE ============ */
+  figure.code { margin: 0; border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; background: var(--surface); }
+  figure.code figcaption {
+    font-family: var(--mono); font-size: .74rem; font-weight: 500;
+    padding: .55rem .85rem; color: var(--ink-mute);
+    background: var(--surface-sunk); border-bottom: 1px solid var(--rule-soft);
+  }
+  pre { margin: 0; padding: 1rem .85rem; overflow-x: auto; font-family: var(--mono); font-size: .795rem; line-height: 1.65; color: var(--ink-soft); }
+  pre b { color: var(--ink); font-weight: 600; }
+  pre i { color: var(--ink-mute); font-style: normal; }
+  pre em.s { color: var(--server); font-style: normal; font-weight: 600; }
+  pre em.c { color: var(--client); font-style: normal; font-weight: 600; }
+
+  /* ============ FIGURE / DIAGRAM ============ */
+  figure.fig { margin: 0; display: flex; flex-direction: column; gap: .85rem; }
+  figure.fig svg { width: 100%; height: auto; display: block; color: var(--ink); }
+  .figbox { border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); padding: 1.25rem 1rem; overflow-x: auto; }
+  figcaption.cap { font-size: var(--step--1); color: var(--ink-mute); line-height: 1.6; max-width: 76ch; }
+
+  /* ============ CALLOUT ============ */
+  .callout {
+    border-left: 3px solid var(--warn);
+    background: var(--warn-bg);
+    padding: 1rem 1.15rem;
+    border-radius: 0 4px 4px 0;
+    display: flex; flex-direction: column; gap: .5rem;
+  }
+  .callout .eyebrow { color: var(--warn); }
+  .callout p { font-size: .95rem; color: var(--ink-soft); }
+
+  /* ============ NUMBERED LIFECYCLE ============ */
+  ol.loop { list-style: none; padding: 0; margin: 0; counter-reset: step; display: flex; flex-direction: column; gap: 0; }
+  ol.loop li {
+    counter-increment: step; margin: 0;
+    display: grid; grid-template-columns: 2.4rem 1fr;
+    column-gap: 1rem; row-gap: .2rem;
+    padding: .95rem 0; border-top: 1px solid var(--rule-soft);
+  }
+  ol.loop li:first-child { border-top: 0; }
+  ol.loop li::before {
+    content: counter(step);
+    font-family: var(--mono); font-size: .8rem; font-weight: 600;
+    color: var(--ink-mute); padding-top: .18rem;
+  }
+  ol.loop b { font-family: var(--display); font-weight: 600; display: block; font-size: .98rem; grid-column: 2; }
+  /* The counter, the title and the description are three items in a two-column
+     grid, so the description must be pinned to column 2 or it wraps into the
+     2.4rem counter gutter. */
+  ol.loop li > span { grid-column: 2; font-size: .95rem; color: var(--ink-soft); }
+  .who { font-family: var(--mono); font-size: .7rem; font-weight: 600; letter-spacing: .04em; padding: .1rem .35rem; border-radius: 2px; margin-left: .4rem; vertical-align: 1px; }
+  .who.s { background: var(--server-bg); color: var(--server); }
+  .who.c { background: var(--client-bg); color: var(--client); }
+  .who.b { background: var(--surface-sunk); color: var(--ink-mute); }
+
+  footer { border-top: 1px solid var(--rule); padding-block: 2.5rem 3.5rem; }
+
+  .skip {
+    position: absolute; left: -9999px;
+    background: var(--surface); color: var(--ink);
+    padding: .6rem .9rem; border: 1px solid var(--rule); border-radius: 4px;
+  }
+  .skip:focus { left: 1rem; top: 1rem; z-index: 50; }
+</style>
+
+<a class="skip" href="#model">Skip to content</a>
+
+<header class="hero">
+  <div class="shell">
+    <div class="hero-rule"></div>
+    <div class="col stack">
+      <p class="eyebrow">Contentful Personalization &amp; Analytics · Solution Architecture</p>
+      <h1>The Optimization SDK Boundary</h1>
+      <p class="lede">One SDK suite, one mental model, two runtimes. This is a map of what runs in the browser, what runs on the server, the primitives each gives you — and how to decide where a variant should actually get resolved.</p>
+    </div>
+    <div class="meta-strip">
+      <span class="chip">Web + server SDKs GA · 21 Jul 2026</span>
+      <span class="chip">MIT licensed · open source</span>
+      <span class="chip">Verified against optimization-nextjs 1.2.0</span>
+      <span class="chip">Assumes React</span>
+    </div>
+  </div>
+</header>
+
+<nav class="jump" aria-label="Sections">
+  <div class="shell">
+    <ol>
+      <li><a href="#model">The one idea</a></li>
+      <li><a href="#boundary">The boundary</a></li>
+      <li><a href="#primitives">Primitives</a></li>
+      <li><a href="#loop">The loop</a></li>
+      <li><a href="#where">Where to resolve</a></li>
+      <li><a href="#nextjs">Adapter vs. manual</a></li>
+      <li><a href="#gotchas">Gotchas</a></li>
+    </ol>
+  </div>
+</nav>
+
+<main>
+
+  <!-- ==================== 1. MENTAL MODEL ==================== -->
+  <section id="model">
+    <div class="shell stack-lg">
+      <div class="col stack">
+        <p class="eyebrow">The one idea</p>
+        <h2>Everything is one request and one join</h2>
+        <p>If you take away nothing else, take this. The SDK asks a Contentful service who this visitor is, and gets back a small decision object:</p>
+      </div>
+
+      <div class="col">
+        <figure class="code">
+          <figcaption>what the Experience API returns</figcaption>
+<pre><b>OptimizationData</b> {
+  <em class="s">profile</em>                <i>// who we think this visitor is + their traits</i>
+  <em class="s">selectedOptimizations</em>  <i>// which experience → which variant index</i>
+  <em class="s">changes</em>               <i>// merge-tag / flag level substitutions</i>
+}</pre>
+        </figure>
+      </div>
+
+      <div class="col stack">
+        <p>Then it performs a join. You fetch a normal Contentful entry — the <strong>baseline</strong> — and the SDK combines it with <code>selectedOptimizations</code> to hand back either the authored variant entry or the baseline, unchanged.</p>
+        <p>That is the whole product surface. Everything else in the suite exists to answer two questions: <em>where</em> does that join happen, and <em>who owns the visitor's identity</em> while it happens.</p>
+      </div>
+
+      <div class="split">
+        <div class="domain is-server">
+          <span class="domain-tag">Read path</span>
+          <h3>Experience API</h3>
+          <p style="font-size:.95rem;color:var(--ink-soft)">Evaluates audience rules and experiment splits, returns the profile and the variant selections. Called by <code>page()</code>, <code>identify()</code>, <code>track()</code>, <code>screen()</code>.</p>
+        </div>
+        <div class="domain is-client">
+          <span class="domain-tag">Write path</span>
+          <h3>Insights API</h3>
+          <p style="font-size:.95rem;color:var(--ink-soft)">Receives behavioural events — entry views, clicks, hovers, custom events — that build profiles and score experiments. Without it, you personalize but cannot measure.</p>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="callout">
+          <p class="eyebrow">Fallback is a feature, not a failure</p>
+          <p>If consent is denied, no audience matches, links are unresolved, or the payload is all-locale, the join returns the <strong>baseline</strong>. That is a valid render, not an error state. Note the corollary: a <em>control</em> assignment also returns the baseline entry but still carries a defined selection at <code>variantIndex: 0</code> — so never infer "nothing matched" from "I got the baseline back."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 2. THE BOUNDARY ==================== -->
+  <section id="boundary">
+    <div class="shell stack-lg">
+      <div class="col stack">
+        <p class="eyebrow">The boundary</p>
+        <h2>Two runtimes, one visitor</h2>
+        <p>Underneath every package sits a single shared core, and it ships in exactly two modes. This split is the most useful thing to understand, because nearly every real integration question resolves to "which side of this line am I on?"</p>
+      </div>
+
+      <div class="split">
+        <div class="domain is-server">
+          <span class="domain-tag">Server side</span>
+          <h3>CoreStateless</h3>
+          <p style="font-size:.95rem;color:var(--ink-soft)">Holds <strong>no state between requests</strong>. Every method returns per-request values. It stores no cookies, no profile, nothing — persistence is the application's job. You create one instance for the process and derive a fresh, request-scoped client per incoming request.</p>
+          <div class="stack-sm">
+            <span class="pkg">@contentful/optimization-node</span>
+            <span class="fine">Also backs the server half of the Next.js adapter.</span>
+          </div>
+        </div>
+        <div class="domain is-client">
+          <span class="domain-tag">Client side</span>
+          <h3>CoreStateful</h3>
+          <p style="font-size:.95rem;color:var(--ink-soft)">Long-lived and reactive. Owns state as observable signals, a consent gate, an event queue, the anonymous-ID cookie, browser storage, and DOM observation for interaction tracking. Enforced as a singleton — a second instance throws.</p>
+          <div class="stack-sm">
+            <span class="pkg">@contentful/optimization-web</span>
+            <span class="pkg">@contentful/optimization-react-web</span>
+          </div>
+        </div>
+      </div>
+
+      <figure class="fig">
+        <div class="figbox">
+          <svg viewBox="0 0 1000 470" role="img" aria-label="A hybrid request: the server binds the request, calls the Experience API, resolves the baseline entry into a variant and sends HTML plus the ctfl-opt-aid cookie; the browser then adopts the same profile from that cookie, calls the Experience API again, re-resolves entries and sends interactions to the Insights API.">
+            <defs>
+              <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+              </marker>
+              <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+              </marker>
+            </defs>
+
+            <!-- Experience API (top) -->
+            <g>
+              <rect x="285" y="8" width="215" height="42" rx="4" fill="var(--surface-sunk)" stroke="var(--rule)"/>
+              <text x="392" y="26" text-anchor="middle" font-family="Archivo, sans-serif" font-size="11.5" font-weight="700" fill="var(--ink)" letter-spacing=".06em">EXPERIENCE API</text>
+              <text x="392" y="41" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--ink-mute)">audiences → selections</text>
+            </g>
+
+            <!-- SERVER LANE -->
+            <text x="40" y="76" font-family="Archivo, sans-serif" font-size="11" font-weight="700" fill="var(--server)" letter-spacing=".13em">SERVER · PER REQUEST · STATELESS</text>
+            <g fill="var(--server-bg)" stroke="var(--server-rule)">
+              <rect x="40"  y="90" width="215" height="62" rx="4"/>
+              <rect x="285" y="90" width="215" height="62" rx="4"/>
+              <rect x="530" y="90" width="215" height="62" rx="4"/>
+              <rect x="775" y="90" width="185" height="62" rx="4"/>
+            </g>
+            <g font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--server)" text-anchor="middle">
+              <text x="147" y="115" font-weight="600">forRequest()</text>
+              <text x="392" y="115" font-weight="600">page()</text>
+              <text x="637" y="115" font-weight="600">resolveOptimizedEntry()</text>
+              <text x="867" y="123" font-weight="600">HTML response</text>
+            </g>
+            <g font-family="Archivo, sans-serif" font-size="10.5" fill="var(--ink-mute)" text-anchor="middle">
+              <text x="147" y="134">consent · profile · locale</text>
+              <text x="392" y="134">emit the first page event</text>
+              <text x="637" y="134">baseline + selections</text>
+              <text x="867" y="139">variant already in it</text>
+            </g>
+
+            <!-- server lane flow arrows -->
+            <g stroke="var(--server)" stroke-width="1.5" fill="none" marker-end="url(#ah)" color="var(--server)">
+              <line x1="255" y1="121" x2="281" y2="121"/>
+              <line x1="500" y1="121" x2="526" y2="121"/>
+              <line x1="745" y1="121" x2="771" y2="121"/>
+            </g>
+            <!-- page() <-> Experience API -->
+            <g stroke="var(--server)" stroke-width="1.5" fill="none" color="var(--server)">
+              <line x1="380" y1="90" x2="380" y2="54" marker-end="url(#ah)"/>
+              <line x1="404" y1="54" x2="404" y2="90" marker-end="url(#ah)"/>
+            </g>
+
+            <!-- HANDOFF / BOUNDARY -->
+            <path d="M 867 152 L 867 214 L 147 214 L 147 286"
+                  fill="none" stroke="var(--ink-mute)" stroke-width="1.75"
+                  stroke-dasharray="7 5" marker-end="url(#ah2)" color="var(--ink-mute)"/>
+            <text x="500" y="205" text-anchor="middle" font-family="Archivo, sans-serif" font-size="11" font-weight="600" fill="var(--ink)">the handoff</text>
+            <text x="500" y="234" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="var(--ink-mute)">ctfl-opt-aid cookie  ·  server selections  ·  prefetched entries</text>
+
+            <!-- BROWSER LANE -->
+            <text x="40" y="272" font-family="Archivo, sans-serif" font-size="11" font-weight="700" fill="var(--client)" letter-spacing=".13em">BROWSER · AFTER HYDRATION · STATEFUL</text>
+            <g fill="var(--client-bg)" stroke="var(--client-rule)">
+              <rect x="40"  y="286" width="215" height="62" rx="4"/>
+              <rect x="285" y="286" width="215" height="62" rx="4"/>
+              <rect x="530" y="286" width="215" height="62" rx="4"/>
+              <rect x="775" y="286" width="185" height="62" rx="4"/>
+            </g>
+            <g font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--client)" text-anchor="middle">
+              <text x="147" y="311" font-weight="600">adopt profile</text>
+              <text x="392" y="311" font-weight="600">identify() / page()</text>
+              <text x="637" y="311" font-weight="600">&lt;OptimizedEntry&gt;</text>
+              <text x="867" y="311" font-weight="600">interactions</text>
+            </g>
+            <g font-family="Archivo, sans-serif" font-size="10.5" fill="var(--ink-mute)" text-anchor="middle">
+              <text x="147" y="330">same visitor, same cookie</text>
+              <text x="392" y="330">login, consent, navigation</text>
+              <text x="637" y="330">re-resolves in place</text>
+              <text x="867" y="330">views · clicks · hovers</text>
+            </g>
+
+            <g stroke="var(--client)" stroke-width="1.5" fill="none" marker-end="url(#ah)" color="var(--client)">
+              <line x1="255" y1="317" x2="281" y2="317"/>
+              <line x1="500" y1="317" x2="526" y2="317"/>
+              <line x1="745" y1="317" x2="771" y2="317"/>
+            </g>
+
+            <!-- browser -> Experience API, routed up the left edge -->
+            <path d="M 340 286 L 340 262 L 20 262 L 20 30 L 281 30"
+                  fill="none" stroke="var(--client)" stroke-width="1.5"
+                  marker-end="url(#ah)" color="var(--client)"/>
+            <text x="30" y="150" font-family="Archivo, sans-serif" font-size="10" fill="var(--client)" transform="rotate(-90 30 150)" text-anchor="middle">same API, second runtime</text>
+
+            <!-- Insights API -->
+            <rect x="775" y="400" width="185" height="42" rx="4" fill="var(--surface-sunk)" stroke="var(--rule)"/>
+            <text x="867" y="418" text-anchor="middle" font-family="Archivo, sans-serif" font-size="11.5" font-weight="700" fill="var(--ink)" letter-spacing=".06em">INSIGHTS API</text>
+            <text x="867" y="433" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--ink-mute)">measurement</text>
+            <line x1="867" y1="348" x2="867" y2="396" stroke="var(--client)" stroke-width="1.5" marker-end="url(#ah)" color="var(--client)"/>
+          </svg>
+        </div>
+        <figcaption class="cap"><strong>What crosses the boundary is identity, not just markup.</strong> The server resolves and renders, then hands the browser a cookie (<code>ctfl-opt-aid</code>) plus its selections. The browser adopts that same profile rather than starting a new one — which is why the visitor doesn't get counted twice, and why a re-resolve after login continues the same journey. Both runtimes call the same Experience API; only the browser drives the Insights API by default.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ==================== 3. PRIMITIVES ==================== -->
+  <section id="primitives">
+    <div class="shell stack-lg">
+      <div class="col stack">
+        <p class="eyebrow">Primitives</p>
+        <h2>What you actually hold in your hands</h2>
+        <p>The client side is declarative — you compose components and read hooks. The server side is imperative — you bind a request and call methods. Same concepts, different ergonomics.</p>
+      </div>
+
+      <div class="split">
+        <div class="domain is-client">
+          <span class="domain-tag">Client · React</span>
+          <h3>Components &amp; hooks</h3>
+          <dl class="prims">
+            <div>
+              <dt>&lt;OptimizationRoot&gt;</dt>
+              <dd>The single entry point. Mount it <strong>once</strong> around everything that uses the SDK. It is a convenience wrapper that composes three providers for you — <code>OptimizationProvider</code>, <code>LiveUpdatesProvider</code>, and <code>InteractionTrackingProvider</code> — so you configure by props instead of wiring providers by hand.</dd>
+            </div>
+            <div>
+              <dt>&lt;OptimizedEntry&gt;</dt>
+              <dd>The workhorse. Takes a baseline entry, performs the join, and gives you the resolved entry through a render prop. Also emits the metadata that makes view/click/hover tracking automatic. Accepts <em>either</em> <code>baselineEntry</code> (you fetch) or <code>entryId</code> (the SDK fetches) — never both.</dd>
+            </div>
+            <div>
+              <dt>useOptimizationActions()</dt>
+              <dd>The verbs: <code>setConsent</code>, <code>identifyUser</code>, <code>trackEvent</code>, <code>trackPageView</code>, <code>trackScreen</code>, <code>resetUser</code>, <code>flushEvents</code>.</dd>
+            </div>
+            <div>
+              <dt>useConsentState() · useProfileState() · useSelectedOptimizationsState()</dt>
+              <dd>The nouns. Read-only reactive views of the current state, for building your own consent UI or debug panel.</dd>
+            </div>
+            <div>
+              <dt>AutoPageTracker</dt>
+              <dd>Router-specific. One per router tree; dedupes consecutive routes for you. Adapters ship for React Router, TanStack Router, and both Next routers.</dd>
+            </div>
+            <div>
+              <dt>attachOptimizationPreviewPanel()</dt>
+              <dd>Optional in-browser panel for authors to impersonate audiences. Separate package; gate it out of production builds.</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="domain is-server">
+          <span class="domain-tag">Server · Node</span>
+          <h3>Singleton &amp; request client</h3>
+          <dl class="prims">
+            <div>
+              <dt>new ContentfulOptimization()</dt>
+              <dd>Created once at module level — never inside a request handler. It holds no visitor state, so reuse is safe and per-request construction is the classic mistake.</dd>
+            </div>
+            <div>
+              <dt>optimization.forRequest({ … })</dt>
+              <dd>The heart of the server model. Binds consent, the incoming profile ID, locale, and page context to <em>this</em> request and returns a scoped client. <strong>Consent is a required argument</strong> — there is no singleton <code>consent()</code> method on the server.</dd>
+            </div>
+            <div>
+              <dt>requestClient.page() / .identify() / .track()</dt>
+              <dd>Live on the request client, not the singleton. Each returns a discriminated <code>{ accepted, data? }</code> — check <code>accepted</code> before reading <code>data</code>. A blocked event returns <code>false</code>; it does not throw.</dd>
+            </div>
+            <div>
+              <dt>fetchOptimizedEntry() · resolveOptimizedEntry()</dt>
+              <dd>Managed (SDK fetches and joins) versus manual (you fetch, then pass the baseline and selections in explicitly).</dd>
+            </div>
+            <div>
+              <dt>ANONYMOUS_ID_COOKIE · canPersistProfile</dt>
+              <dd>Because the server stores nothing, <em>you</em> read the cookie into <code>forRequest</code> and write it back — but only when <code>canPersistProfile</code> is true.</dd>
+            </div>
+            <div>
+              <dt>trackView() · trackClick() · trackFlagView()</dt>
+              <dd>Server-side Insights, available but manual. Most teams let the browser own measurement.</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="callout">
+          <p class="eyebrow">One rule prevents most confusing errors</p>
+          <p>Respect the import boundary. Server Components import from the <strong>Node</strong> package only; Client Components import from the <strong>React Web</strong> package only. Crossing that line produces runtime failures that trace back to the stateful/stateless split and are genuinely hard to diagnose from the symptom.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 4. THE LOOP ==================== -->
+  <section id="loop">
+    <div class="shell stack-lg">
+      <div class="col stack">
+        <p class="eyebrow">The loop</p>
+        <h2>Order of operations</h2>
+        <p>This sequence is genuinely ordered — get it out of order and you render the baseline forever, which is the single most common "personalization isn't working" report. Numbers here mean real steps.</p>
+      </div>
+      <div class="col-wide">
+        <ol class="loop">
+          <li><b>Initialize once<span class="who b">both</span></b><span>One root in the browser, one singleton in the process. Duplicates are the second most common failure.</span></li>
+          <li><b>Establish consent and identity<span class="who b">both</span></b><span>Seed consent and any known profile ID <em>before</em> emitting events. Two independent axes: may we send events, and may we persist a profile.</span></li>
+          <li><b>Identify a known user<span class="who b">both</span></b><span>Only if you have one. Links your application's user to the anonymous profile.</span></li>
+          <li><b>Emit the initial page event<span class="who s">one owner</span></b><span>This is the call that returns selections. In a hybrid app exactly one runtime may own it — if the server emitted it, the browser tracker must be told to skip, or you double-count.</span></li>
+          <li><b>Resolve entries<span class="who b">both</span></b><span>Now, and only now, does the join have anything to work with. Resolving before an accepted event returns the baseline.</span></li>
+          <li><b>Track interactions<span class="who c">browser</span></b><span>Views, clicks, hovers flow to the Insights API using the <em>resolved</em> entry ID. This is what makes experiment reporting work.</span></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 5. WHERE TO RESOLVE ==================== -->
+  <section id="where">
+    <div class="shell stack-lg">
+      <div class="col stack">
+        <p class="eyebrow">Where to resolve</p>
+        <h2>Flash versus cacheability</h2>
+        <p>This is the real architectural decision, and it is a genuine trade-off rather than a best practice. Resolving in the browser keeps your HTML static and shareable but shows the baseline first. Resolving on the server removes that flash but makes the route render per visitor.</p>
+      </div>
+
+      <figure class="fig">
+        <div class="figbox">
+          <svg viewBox="0 0 1000 350" role="img" aria-label="Three timelines comparing where the Experience API call sits relative to first paint. Client-only paints the baseline first and swaps later, leaving a flash window. Server-side calls the Experience API before first paint so the variant is in the initial markup. Edge with a permutation cache resolves at the edge and serves cached markup for that permutation.">
+            <defs>
+              <marker id="t1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+              </marker>
+              <pattern id="hatch" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+                <line x1="0" y1="0" x2="0" y2="6" stroke="var(--warn)" stroke-width="2" opacity=".45"/>
+              </pattern>
+            </defs>
+
+            <!-- time axis label -->
+            <text x="180" y="24" font-family="Archivo, sans-serif" font-size="10.5" font-weight="700" fill="var(--ink-mute)" letter-spacing=".12em">TIME →</text>
+            <text x="960" y="24" text-anchor="end" font-family="Archivo, sans-serif" font-size="10" fill="var(--ink-mute)">schematic, not to scale</text>
+
+            <!-- ROW 1 : CLIENT ONLY -->
+            <text x="8" y="62" font-family="Archivo, sans-serif" font-size="11" font-weight="700" fill="var(--client)" letter-spacing=".08em">CLIENT-ONLY</text>
+            <text x="8" y="78" font-family="Archivo, sans-serif" font-size="10" fill="var(--ink-mute)">React Web SDK</text>
+            <!-- flash band -->
+            <rect x="330" y="52" width="300" height="44" fill="url(#hatch)" stroke="none"/>
+            <g stroke="var(--rule)">
+              <rect x="180" y="52" width="150" height="44" rx="3" fill="var(--surface-sunk)"/>
+              <rect x="330" y="52" width="150" height="44" rx="3" fill="none"/>
+              <rect x="480" y="52" width="150" height="44" rx="3" fill="none"/>
+              <rect x="630" y="52" width="200" height="44" rx="3" fill="var(--client-bg)" stroke="var(--client-rule)"/>
+            </g>
+            <g font-family="Archivo, sans-serif" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">
+              <text x="255" y="78">cached HTML (baseline)</text>
+              <text x="405" y="78">JS boots</text>
+              <text x="555" y="72">Experience</text><text x="555" y="85">API</text>
+              <text x="730" y="78" fill="var(--client)" font-weight="600">variant swaps in</text>
+            </g>
+            <!-- first paint tick -->
+            <line x1="330" y1="42" x2="330" y2="106" stroke="var(--ink)" stroke-width="2"/>
+            <text x="336" y="40" font-family="IBM Plex Mono, monospace" font-size="9.5" font-weight="600" fill="var(--ink)">first paint</text>
+            <text x="480" y="116" text-anchor="middle" font-family="Archivo, sans-serif" font-size="10" font-weight="600" fill="var(--warn)">baseline on screen — the flash</text>
+
+            <!-- ROW 2 : SERVER -->
+            <text x="8" y="172" font-family="Archivo, sans-serif" font-size="11" font-weight="700" fill="var(--server)" letter-spacing=".08em">SERVER</text>
+            <text x="8" y="188" font-family="Archivo, sans-serif" font-size="10" fill="var(--ink-mute)">Node / adapter</text>
+            <g stroke="var(--rule)">
+              <rect x="180" y="162" width="150" height="44" rx="3" fill="none"/>
+              <rect x="330" y="162" width="130" height="44" rx="3" fill="var(--server-bg)" stroke="var(--server-rule)"/>
+              <rect x="460" y="162" width="370" height="44" rx="3" fill="var(--surface-sunk)"/>
+            </g>
+            <g font-family="Archivo, sans-serif" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">
+              <text x="255" y="182">Experience</text><text x="255" y="195">API</text>
+              <text x="395" y="188" fill="var(--server)" font-weight="600">render variant</text>
+              <text x="645" y="188">hydrate · client takes over</text>
+            </g>
+            <line x1="460" y1="152" x2="460" y2="216" stroke="var(--ink)" stroke-width="2"/>
+            <text x="466" y="150" font-family="IBM Plex Mono, monospace" font-size="9.5" font-weight="600" fill="var(--ink)">first paint</text>
+            <text x="180" y="226" font-family="Archivo, sans-serif" font-size="10" font-weight="600" fill="var(--server)">no flash — but this route is now dynamic per request</text>
+
+            <!-- ROW 3 : EDGE -->
+            <text x="8" y="282" font-family="Archivo, sans-serif" font-size="11" font-weight="700" fill="var(--edge)" letter-spacing=".08em">EDGE</text>
+            <text x="8" y="298" font-family="Archivo, sans-serif" font-size="10" fill="var(--ink-mute)">+ permutation cache</text>
+            <g stroke="var(--rule)">
+              <rect x="180" y="272" width="130" height="44" rx="3" fill="var(--edge-bg)" stroke="var(--edge-rule)"/>
+              <rect x="310" y="272" width="130" height="44" rx="3" fill="var(--edge-bg)" stroke="var(--edge-rule)"/>
+              <rect x="440" y="272" width="390" height="44" rx="3" fill="var(--surface-sunk)"/>
+            </g>
+            <g font-family="Archivo, sans-serif" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">
+              <text x="245" y="292" fill="var(--edge)" font-weight="600">edge: Exp. API</text><text x="245" y="305" fill="var(--ink-mute)">→ cache key</text>
+              <text x="375" y="292" fill="var(--edge)" font-weight="600">cached HTML</text><text x="375" y="305" fill="var(--ink-mute)">for permutation</text>
+              <text x="635" y="298">hydrate · client takes over</text>
+            </g>
+            <line x1="440" y1="262" x2="440" y2="326" stroke="var(--ink)" stroke-width="2"/>
+            <text x="446" y="260" font-family="IBM Plex Mono, monospace" font-size="9.5" font-weight="600" fill="var(--ink)">first paint</text>
+            <text x="180" y="336" font-family="Archivo, sans-serif" font-size="10" font-weight="600" fill="var(--edge)">no flash and still shared — cached per variant permutation, not per visitor</text>
+          </svg>
+        </div>
+        <figcaption class="cap"><strong>The only thing that changes between these three is where the Experience API call sits relative to first paint.</strong> Everything downstream — the flash, the cacheability, the infrastructure cost — follows from that one placement. The edge row is the escape hatch from the binary: the edge still calls the Experience API per visitor, but it converts the answer into a <em>cache key</em>, so many visitors who land on the same variant permutation share one cached response.</figcaption>
+      </figure>
+
+      <div class="tablewrap">
+        <table>
+          <caption>Choosing a resolution point</caption>
+          <thead>
+            <tr><th scope="col">Approach</th><th scope="col">First paint</th><th scope="col">Route cacheability</th><th scope="col">Reach for it when</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row" style="color:var(--client)">Client-only</th>
+              <td>Baseline, then swaps</td>
+              <td class="tick">Fully static / CDN</td>
+              <td>The framework is client-only (Vite, CRA, Gatsby), the personalized surface is below the fold, or the route's shared cacheability is non-negotiable.</td>
+            </tr>
+            <tr>
+              <th scope="row" style="color:var(--server)">Server (hybrid SSR)</th>
+              <td class="tick">Variant, no flash</td>
+              <td class="cross">Dynamic per request</td>
+              <td>The default for Next.js and other SSR frameworks. Hero and above-the-fold personalization, where a flash undermines the whole point.</td>
+            </tr>
+            <tr>
+              <th scope="row" style="color:var(--edge)">Edge + permutation cache</th>
+              <td class="tick">Variant, no flash</td>
+              <td class="tick">Shared per permutation</td>
+              <td>High-traffic pages that need both. Costs you a modelling exercise: the variant space must collapse into a manageable set of permutations.</td>
+            </tr>
+            <tr>
+              <th scope="row">Server-only</th>
+              <td class="tick">Variant, no flash</td>
+              <td class="cross">Dynamic per request</td>
+              <td>Rarely. No browser runtime means no interaction tracking, so experiment reporting suffers. Choose it only when client JS is genuinely unavailable.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="col stack">
+        <h3>How to frame this in a room</h3>
+        <p>Don't lead with "SSR is better." Lead with the question: <em>is the personalized content above the fold?</em> If yes, resolve on the server and accept a dynamic route. If no, resolve in the browser and keep the CDN. Teams that skip that question tend to convert a happily-cached site into a dynamically-rendered one to remove a flash nobody would have seen.</p>
+        <div class="callout">
+          <p class="eyebrow">The constraint people trip over</p>
+          <p>A route that resolves personalization server-side reads cookies and headers, so it renders per request. It <strong>cannot</strong> also be statically generated or ISR-cached. If you leave <code>generateStaticParams</code>, <code>force-static</code>, or a <code>revalidate</code> directive on a personalized route, you have written two contradictory intents — and the build summary may still print the static marker even though nothing is prerendered.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 6. NEXTJS ==================== -->
+  <section id="nextjs">
+    <div class="shell stack-lg">
+      <div class="col stack">
+        <p class="eyebrow">Adapter vs. manual</p>
+        <h2>Two ways to build the same hybrid app</h2>
+        <p>For an App Router application you have a real choice: compose the Node SDK and the React Web SDK yourself, or install the Next.js adapter that binds them for you. Both produce a hybrid app. The difference is entirely about <strong>who owns the handoff</strong>.</p>
+      </div>
+
+      <div class="tablewrap">
+        <table>
+          <caption>Who owns what</caption>
+          <thead>
+            <tr>
+              <th scope="col">Responsibility</th>
+              <th scope="col">Node + React Web (manual)</th>
+              <th scope="col">optimization-nextjs (adapter)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Packages</th><td class="mono">optimization-node + optimization-react-web</td><td class="mono">optimization-nextjs</td></tr>
+            <tr><th scope="row">Request binding</th><td>You assemble consent, profile, locale, user-agent and full page context by hand.</td><td>Derived from the forwarded request context.</td></tr>
+            <tr><th scope="row">Cookie persistence</th><td>You read and write <code>ctfl-opt-aid</code>, gated on <code>canPersistProfile</code>.</td><td>Handled by the request handler.</td></tr>
+            <tr><th scope="row">Server → browser handoff</th><td>You serialize selections and prefetched entries and rehydrate them client-side.</td><td>Bound components carry the handoff automatically.</td></tr>
+            <tr><th scope="row">Initial page event</th><td>You decide the owner and suppress the other, manually.</td><td><code>initialPageEvent</code> on the tracker.</td></tr>
+            <tr><th scope="row">Tracking attributes</th><td>You emit <code>data-ctfl-*</code> metadata yourself.</td><td>Emitted by the bound <code>&lt;OptimizedEntry&gt;</code>.</td></tr>
+            <tr><th scope="row">Best fit</th><td>Non-Next SSR — Remix, Express, Nest, custom edge. Or a Next app with genuinely unusual routing.</td><td class="tick">Any Next.js app. This is the recommended path.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="split">
+        <figure class="code">
+          <figcaption>manual · the server half you own</figcaption>
+<pre><i>// one singleton per process — never per request</i>
+<b>export const</b> optimization = <b>new</b> ContentfulOptimization({
+  clientId, environment, locale: <em class="s">'en-US'</em>,
+})
+
+<i>// ...then, inside the request</i>
+<b>const</b> req = optimization.<em class="s">forRequest</em>({
+  consent: { events: <b>true</b>, persistence: <b>true</b> },
+  profile: aid ? { id: aid } : <b>undefined</b>,
+  eventContext: { userAgent, page: { path, url, search, referrer } },
+})
+
+<b>const</b> result = <b>await</b> req.<em class="s">page</em>()
+<b>const</b> selections = result.accepted
+  ? result.data?.selectedOptimizations
+  : <b>undefined</b>
+
+<b>const</b> { entry } = optimization.<em class="s">resolveOptimizedEntry</em>(
+  baselineEntry, selections,
+)
+
+<i>// you still owe the browser:</i>
+<i>//   1. the ctfl-opt-aid cookie (if req.canPersistProfile)</i>
+<i>//   2. these selections, serialized into the client tree</i>
+<i>//   3. a decision about who emits the initial page event</i></pre>
+        </figure>
+
+        <figure class="code">
+          <figcaption>adapter · the same thing, bound</figcaption>
+<pre><i>// src/lib/optimization.js</i>
+<b>import</b> 'server-only'
+<b>import</b> { bindNextjsAppRouterServerOptimization }
+  <b>from</b> '@contentful/optimization-nextjs/app-router/server'
+
+<b>const</b> optimization = <em class="s">bindNextjsAppRouterServerOptimization</em>({
+  clientId, environment, locale: <em class="s">'en-US'</em>,
+  consent: {
+    server: ({ cookies }) =&gt;
+      cookies.get(CONSENT_COOKIE)?.value === 'denied'
+        ? <b>false</b>
+        : { events: <b>true</b>, persistence: <b>true</b> },
+    clientDefaults: { consent: <b>false</b>, persistenceConsent: <b>false</b> },
+  },
+})
+
+<i>// the `request` family is the per-visitor surface</i>
+<b>export const</b> { OptimizationRoot, OptimizedEntry,
+  NextAppAutoPageTracker } = optimization.<em class="s">request</em>
+
+<i>// src/proxy.js  (Next 16; middleware.js on 13–15)</i>
+<b>export const</b> proxy = <em class="s">createNextjsOptimizationContextHandler</em>()
+<b>export const</b> config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api).*)'],
+}</pre>
+        </figure>
+      </div>
+
+      <div class="col stack">
+        <h3>The part worth flagging early</h3>
+        <p>That <code>proxy.js</code> / <code>middleware.js</code> file is <strong>not optional</strong> when server personalization is enabled. It forwards the request context that the bound components depend on. If it is missing or misnamed for your Next.js major version, the bound root <em>throws</em> — it does not quietly fall back to the baseline. It is the first thing to check when a new integration won't start.</p>
+        <div class="callout">
+          <p class="eyebrow">Expect some naming drift in the docs</p>
+          <p>The adapter's public surface has moved during the 1.x line. As of <strong>1.2.0</strong> the App Router entry points are <code>bindNextjsAppRouterServerOptimization</code> from <code>/app-router/server</code> and its client counterpart under <code>/app-router/client</code>. Some published guides and AI-assistant references still show an earlier <code>createNextjsAppRouterOptimization</code> from a bare <code>/app-router</code> subpath, which this version does not export. Trust the installed package's exports and README over any prose, and pin your suite versions together.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 7. GOTCHAS ==================== -->
+  <section id="gotchas">
+    <div class="shell stack-lg">
+      <div class="col stack">
+        <p class="eyebrow">Gotchas</p>
+        <h2>The short list that saves a week</h2>
+        <p>Almost every "it renders the baseline and I don't know why" ticket is one of these. None are obvious from the symptom.</p>
+      </div>
+
+      <div class="split">
+        <div class="domain is-server">
+          <span class="domain-tag">Content &amp; data</span>
+          <h3>Fetching</h3>
+          <ul style="font-size:.95rem;color:var(--ink-soft)">
+            <li><strong>One concrete locale.</strong> Never <code>locale=*</code> or <code>withAllLocales</code> — locale-keyed field maps cannot be resolved and silently fall back to baseline.</li>
+            <li><strong>Enough link depth.</strong> The chain is entry → <code>nt_experiences</code> → <code>nt_variants</code> → variant content. Shallow includes leave unresolved links, which are filtered out, so nothing personalizes. The managed path uses <code>include: 10</code>; match it manually.</li>
+            <li><strong>Publish in dependency order.</strong> Variants, then experiences, then the baseline. The Delivery API only sees published content, so personalization can work in preview and fail in production.</li>
+          </ul>
+        </div>
+        <div class="domain is-client">
+          <span class="domain-tag">Runtime &amp; state</span>
+          <h3>Wiring</h3>
+          <ul style="font-size:.95rem;color:var(--ink-soft)">
+            <li><strong><code>ctfl-opt-aid</code> must not be <code>HttpOnly</code>.</strong> The browser SDK reads it from <code>document.cookie</code> at startup. Mark it HttpOnly and server/client profile continuity breaks — quietly.</li>
+            <li><strong>One owner for the initial page event.</strong> Otherwise you double-count every visit.</li>
+            <li><strong>Deduplicate <code>page()</code> across Server Components.</strong> Wrap it in React's <code>cache()</code> or every component triggers its own Experience API call for the same request.</li>
+            <li><strong>Blocked events are silent.</strong> They return <code>{ accepted: false }</code> rather than throwing. Use <code>onEventBlocked</code> or the blocked-event stream when tracking seems to vanish.</li>
+            <li><strong>Live updates are opt-in.</strong> Entries lock after first resolution. If content should change after login or a consent grant, enable it — but don't enable it to fix a broken first render.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="col stack">
+        <h3>Consent, briefly</h3>
+        <p>Two independent axes: may we <strong>send events</strong>, and may we <strong>persist a profile</strong>. Tracking is gated by default; only <code>identify</code> and <code>page</code> are admitted pre-consent in the web runtimes. The SDK renders no consent UI and does not own your consent record — you call it from whatever banner or CMP you already have. Absent any decision the state is <code>undefined</code>, not <code>false</code>; tighten that to fail-closed with an empty allowed-events list if your policy demands it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 8. STATUS ==================== -->
+  <section id="status">
+    <div class="shell stack-lg">
+      <div class="col stack">
+        <p class="eyebrow">Status</p>
+        <h2>What you can build on today</h2>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <caption>Coverage at time of writing</caption>
+          <thead><tr><th scope="col">Runtime</th><th scope="col">Package</th><th scope="col">Status</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">React (browser)</th><td class="mono">optimization-react-web</td><td class="tick">GA</td></tr>
+            <tr><th scope="row">Next.js — SSR, hybrid, client</th><td class="mono">optimization-nextjs</td><td class="tick">GA</td></tr>
+            <tr><th scope="row">Browser, non-React</th><td class="mono">optimization-web</td><td class="tick">GA</td></tr>
+            <tr><th scope="row">Node / server</th><td class="mono">optimization-node</td><td class="tick">GA</td></tr>
+            <tr><th scope="row">React Native, iOS, Android</th><td class="mono">optimization-react-native + native</td><td>Targeted GA later in 2026</td></tr>
+            <tr><th scope="row">Angular, Vue</th><td class="cross">—</td><td>Planned, no committed date. Use the Web SDK and wire the lifecycle yourself.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="col stack">
+        <p>The suite is the recommended path for <strong>all new</strong> Personalization and Analytics work, and it fully replaces the legacy Ninetailed <code>experience.js</code> SDKs. Existing production integrations on <code>experience.js</code> remain supported with no announced deprecation date, and there is no automated migration tool — the provider lifecycle, consent model, identity handling and rendering contracts all differ, so treat a migration as a deliberate project rather than an import rename.</p>
+        <p class="fine">The SDK itself is MIT-licensed and open source; using it against Contentful Personalization or Analytics requires the corresponding license.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="shell col stack-sm">
+    <p class="eyebrow">Sources</p>
+    <p class="fine">Contentful developer documentation (Optimization SDK overview, Choose the right SDK, profile synchronization, entry personalization and variant resolution); the <code>contentful/optimization</code> package READMEs; internal Contentful technical enablement material; and the exported type surface of <code>@contentful/optimization-nextjs@1.2.0</code> as installed. API names verified against that installed version rather than prose.</p>
+  </div>
+</footer>
