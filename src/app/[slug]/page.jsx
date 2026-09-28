@@ -7,16 +7,32 @@ import { LivePreviewResolver } from "@/src/components/LivePreviewResolver";
 import { notFound } from "next/navigation";
 
 // Server Component that performs the request-time reads (params + draftMode)
-// and the Contentful fetch. Isolated so it can sit inside a <Suspense>
-// boundary — under Cache Components any uncached request-time access must
-// be wrapped in Suspense.
+// and the Contentful fetch. Isolated so it can sit inside its own <Suspense>.
+//
+// That boundary is NOT redundant with the one in [slug]/layout.jsx, however much
+// it looks like it. Next.js prerenders a layout and the page it receives as
+// `children` as separate units, so the layout's boundary is not an ancestor for
+// the purposes of prerender analysis. Remove this one and `await connection()`
+// below reports:
+//
+//   Route "/[slug]": Next.js encountered uncached data during prerendering...
+//   `connection()` accessed outside of `<Suspense>`
+//
+// (Learned the hard way — this comment previously said the layout covered it.
+// It does not.)
+//
+// `fallback={null}` matches the layout's boundary: blank, then baseline at full
+// opacity. See the reasoning in [slug]/layout.jsx — in short, the production
+// window is ~47ms and nothing renders below this subtree, so there is no shift
+// to reserve against. Keep the two fallbacks identical, whatever they are; two
+// boundaries resolving in sequence with *different* fallbacks is what produced
+// the visible jump this replaced.
 const PageBody = async ({ params }) => {
-  // This Suspense boundary is prerendered independently of the one in
-  // layout.jsx, so the connection() call there does not cover it. The resolvers
-  // below render <OptimizedEntry>, which builds a personalization event payload
-  // and stamps it with new Date() — an unstable value Next.js refuses to
-  // prerender. Awaiting connection() moves this subtree to request time, which
-  // is required anyway since variant selection depends on the visitor profile.
+  // The resolvers below render <OptimizedEntry>, which builds a personalization
+  // event payload and stamps it with new Date() — an unstable value Next.js
+  // refuses to prerender. Awaiting connection() moves this subtree to request
+  // time, which is required anyway since variant selection depends on the
+  // visitor profile.
   await connection();
 
   const { slug } = await params;
@@ -58,30 +74,9 @@ const PageBody = async ({ params }) => {
   ));
 };
 
-// TEMPORARY DEBUG PLACEHOLDER — remove before shipping.
-// Shows while <PageBody> is pending: connection() + params + draftMode() + the
-// Contentful fetch. Inline styles (not Tailwind) so nothing can be purged, and
-// deliberately no clock read — a new Date() here would reintroduce the
-// prerender error this boundary exists to contain.
-const PageBodyFallback = () => (
-  <section
-    style={{
-      width: "100%",
-      padding: "10rem 2rem",
-      background: "#dc2626",
-      color: "#ffffff",
-      font: "bold 1.25rem/1.4 system-ui, sans-serif",
-      textAlign: "center",
-      border: "8px dashed #fde047",
-    }}
-  >
-    PAGE SUSPENSE FALLBACK — PageBody pending (fetch + resolvers)
-  </section>
-);
-
 const landingPage = (props) => {
   return (
-    <Suspense fallback={<PageBodyFallback />}>
+    <Suspense fallback={null}>
       <PageBody params={props.params} />
     </Suspense>
   );

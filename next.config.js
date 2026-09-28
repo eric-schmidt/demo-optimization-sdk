@@ -9,6 +9,7 @@ const nextConfig = {
       expire: 3600,
     },
   },
+  allowedDevOrigins: ["kit-singular-subtly.ngrok-free.app"],
   images: {
     loader: "custom",
     loaderFile: "./src/lib/imageLoader.js",

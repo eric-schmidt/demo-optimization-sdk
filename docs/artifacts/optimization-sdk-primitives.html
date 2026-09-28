@@ -1,0 +1,865 @@
+<title>Optimization SDK Primitives</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+  /* ========== TOKENS: complete light palette on bare :root ========== */
+  :root {
+    --paper:      #eff2f7;
+    --surface:    #ffffff;
+    --sunk:       #e5e9f2;
+    --code-bg:    #131829;
+    --code-ink:   #dfe4f2;
+    --ink:        #131829;
+    --ink-soft:   #4a5471;
+    --ink-mute:   #6d7691;
+    --rule:       #ccd4e4;
+    --rule-soft:  #dee4f0;
+    --accent:     #2b45c4;
+    --accent-bg:  #e6eafb;
+    --flag:       #97272f;
+    --flag-bg:    #f8e7e8;
+
+    --measure:  66ch;
+    --step--1:  .8125rem;
+    --step-0:   1.0625rem;
+    --step-1:   1.1875rem;
+    --step-2:   clamp(1.35rem, 2.4vw, 1.65rem);
+    --step-3:   clamp(1.75rem, 3.4vw, 2.25rem);
+    --step-4:   clamp(2.3rem, 5.6vw, 3.5rem);
+
+    --display: "Familjen Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --body:    "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono:    "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:     #0b0f17;
+      --surface:   #131926;
+      --sunk:      #1b2231;
+      --code-bg:   #070a11;
+      --code-ink:  #d7deef;
+      --ink:       #e5e9f3;
+      --ink-soft:  #a3adc6;
+      --ink-mute:  #8189a1;
+      --rule:      #2a3345;
+      --rule-soft: #1f2734;
+      --accent:    #8b9fff;
+      --accent-bg: #1a2140;
+      --flag:      #e79098;
+      --flag-bg:   #33161a;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:     #0b0f17;
+    --surface:   #131926;
+    --sunk:      #1b2231;
+    --code-bg:   #070a11;
+    --code-ink:  #d7deef;
+    --ink:       #e5e9f3;
+    --ink-soft:  #a3adc6;
+    --ink-mute:  #8189a1;
+    --rule:      #2a3345;
+    --rule-soft: #1f2734;
+    --accent:    #8b9fff;
+    --accent-bg: #1a2140;
+    --flag:      #e79098;
+    --flag-bg:   #33161a;
+  }
+
+  /* ========== BASE ========== */
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: var(--step-0);
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .shell {
+    width: 100%;
+    max-width: 62rem;
+    margin-inline: auto;
+    padding-inline: clamp(1.15rem, 4vw, 2.75rem);
+  }
+
+  .measure { max-width: var(--measure); }
+
+  h1, h2, h3, h4 {
+    font-family: var(--display);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -.02em;
+    text-wrap: balance;
+    margin: 0;
+  }
+  h1 { font-size: var(--step-4); letter-spacing: -.035em; }
+  h2 { font-size: var(--step-3); }
+  h3 { font-size: var(--step-2); letter-spacing: -.025em; }
+  h4 { font-size: var(--step-1); }
+
+  p { margin: 0; }
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible,
+  summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+
+  code, .mono { font-family: var(--mono); font-size: .89em; }
+
+  /* inline code */
+  :where(p, li, td, th, figcaption, dd, dt) code {
+    background: var(--sunk);
+    border: 1px solid var(--rule-soft);
+    border-radius: 3px;
+    padding: .06em .3em;
+    white-space: nowrap;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: var(--step--1);
+    font-weight: 500;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0;
+  }
+
+  .lede { font-size: var(--step-1); color: var(--ink-soft); }
+  .fine { font-size: var(--step--1); color: var(--ink-mute); line-height: 1.55; }
+
+  .stack   { display: flex; flex-direction: column; gap: 1rem; }
+  .stack-sm{ display: flex; flex-direction: column; gap: .55rem; }
+  .stack-lg{ display: flex; flex-direction: column; gap: 2rem; }
+
+  /* ========== HEADER ========== */
+  header.masthead {
+    background: var(--surface);
+    border-bottom: 1px solid var(--rule);
+    padding-block: clamp(2.75rem, 7vw, 4.75rem) 0;
+  }
+  .masthead .inner { display: flex; flex-direction: column; gap: 1.15rem; }
+
+  .meta-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .45rem;
+    border-top: 1px solid var(--rule-soft);
+    margin-top: 1.5rem;
+    padding-block: .9rem 1.1rem;
+  }
+  .chip {
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .045em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    border: 1px solid var(--rule);
+    border-radius: 100px;
+    padding: .25rem .6rem;
+  }
+
+  /* ========== SCAN LIST ========== */
+  .scan {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: clamp(1.1rem, 3vw, 1.75rem);
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 46rem) { .scan { grid-template-columns: 1fr 1fr; gap: 2.25rem; } }
+
+  .scan h4 {
+    font-family: var(--mono);
+    font-size: var(--step--1);
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    padding-bottom: .55rem;
+    border-bottom: 1px solid var(--rule-soft);
+    margin-bottom: .7rem;
+  }
+  .scan ol { margin: 0; padding-left: 1.35rem; display: flex; flex-direction: column; gap: .3rem; }
+  .scan li { font-size: .95rem; color: var(--ink-soft); }
+  .scan li b { color: var(--ink); font-weight: 600; }
+
+  /* ========== PART DIVIDER ========== */
+  .part {
+    border-top: 2px solid var(--ink);
+    margin-top: 1rem;
+    padding-top: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+  }
+  .part-tag {
+    font-family: var(--mono);
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+
+  /* ========== PRIMITIVE ========== */
+  section.band { padding-block: clamp(2.25rem, 5vw, 3.5rem); }
+
+  .prim {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: .75rem;
+    padding-block: 1.75rem;
+    border-top: 1px solid var(--rule-soft);
+  }
+  .prim:first-of-type { border-top: none; padding-top: .75rem; }
+
+  @media (min-width: 46rem) {
+    .prim { grid-template-columns: 4.25rem minmax(0, 1fr); gap: 0 1.5rem; }
+  }
+
+  .prim-idx {
+    font-family: var(--mono);
+    font-size: .95rem;
+    font-weight: 600;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .02em;
+  }
+  .prim-body { display: flex; flex-direction: column; gap: .8rem; min-width: 0; }
+  .prim-body > p { max-width: var(--measure); color: var(--ink-soft); }
+  .prim-body > p strong { color: var(--ink); font-weight: 600; }
+
+  /* ========== CODE ========== */
+  figure.code { margin: 0; min-width: 0; }
+  figure.code figcaption {
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    padding-bottom: .4rem;
+  }
+  figure.code pre {
+    margin: 0;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    border-radius: 4px;
+    padding: 1rem 1.15rem;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: .825rem;
+    line-height: 1.72;
+    tab-size: 2;
+  }
+  figure.code i  { color: #7f8bb0; font-style: normal; }   /* comment */
+  figure.code b  { color: #9db4ff; font-weight: 500; }     /* keyword / component */
+  figure.code em { color: #7fd6c1; font-style: normal; }   /* string / key */
+  figure.code s  { color: #e9959c; text-decoration: none; }/* danger */
+
+  /* ========== CALLOUT ========== */
+  .note {
+    border-left: 2px solid var(--accent);
+    background: var(--accent-bg);
+    padding: .7rem .95rem;
+    border-radius: 0 3px 3px 0;
+    font-size: .93rem;
+    color: var(--ink-soft);
+    max-width: var(--measure);
+  }
+  .note.is-flag { border-left-color: var(--flag); background: var(--flag-bg); }
+  .note b { color: var(--ink); }
+
+  /* ========== SPLIT COMPARE ========== */
+  .compare { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  @media (min-width: 40rem) { .compare { grid-template-columns: 1fr 1fr; } }
+  .compare > div {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .45rem;
+  }
+  .compare .who {
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  .compare p { font-size: .93rem; color: var(--ink-soft); }
+  .compare .win  { color: var(--accent); font-weight: 600; }
+  .compare .lose { color: var(--flag); font-weight: 600; }
+
+  /* ========== FIGURE / DIAGRAM ========== */
+  figure.dia { margin: 0; display: flex; flex-direction: column; gap: .6rem; }
+  .dia-frame {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 1.1rem;
+    overflow-x: auto;
+  }
+  figure.dia svg { display: block; width: 100%; min-width: 30rem; max-width: 100%; height: auto; color: var(--ink-soft); }
+  figure.dia figcaption { font-size: var(--step--1); color: var(--ink-mute); max-width: var(--measure); }
+  .svg-strong { fill: var(--ink); }
+  .svg-accent { stroke: var(--accent); }
+  .svg-accent-fill { fill: var(--accent); }
+  .svg-box { fill: var(--sunk); stroke: var(--rule); }
+  .svg-hero { fill: var(--accent-bg); stroke: var(--accent); }
+  figure.dia text { font-family: var(--mono); font-size: 12px; fill: currentColor; }
+  figure.dia text.t-strong { fill: var(--ink); font-weight: 600; }
+  figure.dia text.t-sm { font-size: 10.5px; }
+
+  /* ========== TABLE ========== */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 34rem; font-size: .92rem; }
+  caption { text-align: left; padding: .8rem 1rem 0; font-size: var(--step--1); color: var(--ink-mute); }
+  th, td { text-align: left; padding: .6rem 1rem; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+  thead th {
+    font-family: var(--mono); font-size: .7rem; letter-spacing: .07em;
+    text-transform: uppercase; color: var(--ink-mute); font-weight: 600;
+  }
+  tbody th { font-weight: 600; color: var(--ink); }
+  tbody tr:last-child :where(th, td) { border-bottom: none; }
+  td.mono, th.mono { font-family: var(--mono); font-size: .82rem; }
+
+  /* ========== FOOTER ========== */
+  footer {
+    background: var(--surface);
+    border-top: 1px solid var(--rule);
+    margin-top: 2rem;
+    padding-block: 2rem 2.75rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<header class="masthead">
+  <div class="shell">
+    <div class="inner">
+      <p class="eyebrow">Contentful Personalization &amp; Analytics</p>
+      <h1>Optimization SDK Primitives</h1>
+      <p class="lede measure">There are six ideas that hold true no matter which SDK in the suite you pick, and seven more that are specific to Next.js App Router. Learn these thirteen and the rest of the surface is detail.</p>
+    </div>
+    <div class="meta-strip">
+      <span class="chip">Basic boilerplate only</span>
+      <span class="chip">Verified against optimization-nextjs 1.2.0</span>
+      <span class="chip">App Router · Next.js 16</span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- ============ SCAN ============ -->
+  <section class="band">
+    <div class="shell stack-lg">
+      <div class="scan">
+        <div>
+          <h4>Part one · true of every SDK</h4>
+          <ol>
+            <li><b>The decision object</b> — one shape, every runtime</li>
+            <li><b>The baseline join</b> — and why baseline is success</li>
+            <li><b>One root, fixed lifecycle order</b></li>
+            <li><b>Consent is two axes</b>, not a boolean</li>
+            <li><b>The Contentful fetch contract</b></li>
+            <li><b>Where you resolve</b> = flash vs. cacheability</li>
+          </ol>
+        </div>
+        <div>
+          <h4>Part two · Next.js App Router</h4>
+          <ol>
+            <li><b>Import subpaths</b>, never the package root</li>
+            <li><b>Bind once</b>, in a server-only module</li>
+            <li><b>The proxy boundary</b> is required</li>
+            <li><b>Two surfaces</b>: request vs. explicit</li>
+            <li><b>The handoff</b> — server to browser</li>
+            <li><b>Root, tracker, entry</b> — what you render</li>
+            <li><b>Personalized means dynamic</b></li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PART ONE ============ -->
+  <section class="band">
+    <div class="shell stack-lg">
+
+      <div class="part">
+        <span class="part-tag">Part one</span>
+        <h2>What is true of every SDK in the suite</h2>
+        <p class="lede measure">The suite ships packages for React Web, Next.js, plain browser, Node, and React Native. They differ in how they hold state, not in what they do. These six things are the same everywhere.</p>
+      </div>
+
+      <!-- P1 -->
+      <article class="prim">
+        <div><span class="prim-idx">01</span></div>
+        <div class="prim-body">
+          <h3>The decision object</h3>
+          <p>You ask the Experience API who this visitor is, and it answers with one small object called <code>OptimizationData</code>. Every SDK in the suite receives this same shape. Stateful runtimes — browser, mobile — put it into reactive state; the stateless Node SDK hands it back to the current request.</p>
+          <p>The one habit to build now: an event can be <strong>accepted without carrying data yet</strong>, so check both before you read.</p>
+          <figure class="code">
+            <figcaption>the shape, and the guard</figcaption>
+<pre><b>const</b> result = <b>await</b> runtime.page();
+
+<b>if</b> (result.accepted &amp;&amp; result.data) {
+  <b>const</b> { <em>profile</em>, <em>selectedOptimizations</em>, <em>changes</em> } = result.data;
+}
+
+<i>// profile               — who we think this visitor is, plus traits</i>
+<i>// selectedOptimizations — which experience won, and which variant index</i>
+<i>// changes               — merge-tag and flag level substitutions</i></pre>
+          </figure>
+        </div>
+      </article>
+
+      <!-- P2 -->
+      <article class="prim">
+        <div><span class="prim-idx">02</span></div>
+        <div class="prim-body">
+          <h3>The baseline join</h3>
+          <p>You fetch an ordinary Contentful entry — the <strong>baseline</strong>. The SDK joins it against <code>selectedOptimizations</code> and hands back either the authored variant entry or the baseline, untouched. That join is the whole product surface.</p>
+          <p>It is <strong>fail-soft by design</strong>. If nothing matches, if links are unresolved, if the entry was never personalized — you get the baseline. That is a success, not an error, and it must render normally.</p>
+          <figure class="code">
+            <figcaption>the shared resolver — Core, Web, React, Node</figcaption>
+<pre><b>const</b> { entry, selectedOptimization } = optimization.resolveOptimizedEntry(
+  baselineEntry,
+  selectedOptimizations,
+);
+
+<i>// `entry` is the variant, or the baseline unchanged. Both are normal.</i></pre>
+          </figure>
+          <div class="note">
+            <b>Two things that bite on day one.</b> A control assignment has <code>variantIndex: 0</code> — it returns the baseline entry but <code>selectedOptimization</code> is still defined, so never infer &ldquo;nothing matched&rdquo; from <code>resolved.entry === baselineEntry</code>. And your component has to render identically from baseline or variant: same content type, all content arriving through props. A component that fetches its own data cannot be personalized.
+          </div>
+
+          <figure class="dia">
+            <div class="dia-frame">
+              <svg viewBox="0 0 780 236" role="img" aria-label="Two inputs — a baseline entry from the Contentful Delivery API and selectedOptimizations from the Experience API — meet in the resolver, which outputs either the variant entry when an experience matches, or the baseline entry unchanged when anything is missing.">
+                <defs>
+                  <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                    <polygon points="0,0 10,5 0,10" fill="currentColor"></polygon>
+                  </marker>
+                  <marker id="ah-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                    <polygon points="0,0 10,5 0,10" class="svg-accent-fill"></polygon>
+                  </marker>
+                </defs>
+
+                <!-- inputs -->
+                <rect x="8" y="26" width="176" height="52" rx="3" class="svg-box"></rect>
+                <text x="96" y="49" text-anchor="middle" class="t-strong">Contentful CDA</text>
+                <text x="96" y="66" text-anchor="middle" class="t-sm">your normal fetch</text>
+
+                <rect x="8" y="158" width="176" height="52" rx="3" class="svg-box"></rect>
+                <text x="96" y="181" text-anchor="middle" class="t-strong">Experience API</text>
+                <text x="96" y="198" text-anchor="middle" class="t-sm">page() / identify()</text>
+
+                <!-- arrows in -->
+                <line x1="188" y1="52" x2="296" y2="96" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)"></line>
+                <text x="196" y="80" class="t-sm">baseline entry</text>
+
+                <line x1="188" y1="184" x2="296" y2="140" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)"></line>
+                <text x="196" y="163" class="t-sm">selectedOptimizations</text>
+
+                <!-- resolver -->
+                <rect x="300" y="82" width="180" height="72" rx="3" class="svg-hero" stroke-width="1.5"></rect>
+                <text x="390" y="112" text-anchor="middle" class="t-strong">resolve</text>
+                <text x="390" y="130" text-anchor="middle" class="t-sm">match nt_experiences</text>
+
+                <!-- arrows out -->
+                <line x1="484" y1="104" x2="596" y2="60" class="svg-accent" stroke-width="1.5" marker-end="url(#ah-a)"></line>
+                <text x="498" y="80" class="t-sm">match</text>
+
+                <line x1="484" y1="132" x2="596" y2="176" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)"></line>
+                <text x="498" y="163" class="t-sm">anything missing</text>
+
+                <!-- outputs -->
+                <rect x="600" y="26" width="172" height="52" rx="3" class="svg-hero" stroke-width="1.5"></rect>
+                <text x="686" y="49" text-anchor="middle" class="t-strong">variant entry</text>
+                <text x="686" y="66" text-anchor="middle" class="t-sm">from nt_variants</text>
+
+                <rect x="600" y="158" width="172" height="52" rx="3" class="svg-box"></rect>
+                <text x="686" y="181" text-anchor="middle" class="t-strong">baseline entry</text>
+                <text x="686" y="198" text-anchor="middle" class="t-sm">unchanged — also success</text>
+              </svg>
+            </div>
+            <figcaption>Both outputs are the same type, so the component downstream cannot tell which one it got — which is exactly why baseline fallback is safe, and why a silent baseline is so hard to notice.</figcaption>
+          </figure>
+        </div>
+      </article>
+
+      <!-- P3 -->
+      <article class="prim">
+        <div><span class="prim-idx">03</span></div>
+        <div class="prim-body">
+          <h3>One root, and a fixed lifecycle order</h3>
+          <p>Create <strong>exactly one</strong> runtime root or process singleton per app. Then the order is not optional: initialize, seed consent and identity, emit the initial <code>page</code> (or <code>screen</code>) event, and only then resolve entries. Resolve before the event lands and you have no selections to resolve against.</p>
+          <p>The split worth internalizing: browser and mobile runtimes <strong>hold</strong> state; the Node SDK is <strong>request-scoped</strong>, and its events live on the object <code>forRequest()</code> returns — not on the singleton.</p>
+          <figure class="code">
+            <figcaption>stateless server — one request, one scope</figcaption>
+<pre><b>const</b> requestOptimization = optimization.forRequest({
+  <em>consent</em>: { <em>events</em>: <b>true</b>, <em>persistence</em>: <b>true</b> },
+  <em>profile</em>,
+});
+
+<b>const</b> { accepted, data } = <b>await</b> requestOptimization.page({
+  <em>properties</em>: { <em>path</em>: <em>'/pricing'</em> },
+});
+
+<i>// Node stores nothing between requests. Persistence is yours to carry.</i></pre>
+          </figure>
+        </div>
+      </article>
+
+      <!-- P4 -->
+      <article class="prim">
+        <div><span class="prim-idx">04</span></div>
+        <div class="prim-body">
+          <h3>Consent is two independent axes</h3>
+          <p>Not one switch, two: may we <strong>send events</strong>, and may we <strong>retain a profile</strong> across visits. A boolean sets both at once; the object form lets them differ — analytics with no durable identity, say.</p>
+          <p>Your app owns the consent record and every piece of consent UI. The SDK owns exactly one cookie, <code>ctfl-opt-aid</code>, which carries profile identity.</p>
+          <figure class="code">
+            <figcaption>the object form, for when policy splits</figcaption>
+<pre>sdk.consent({ <em>events</em>: <b>true</b>, <em>persistence</em>: <b>false</b> });
+
+<i>// With no decision recorded, state is `undefined` — not `false`.</i></pre>
+          </figure>
+          <div class="note is-flag">
+            <b>Do not mark <code>ctfl-opt-aid</code> HttpOnly.</b> The browser SDK reads it from <code>document.cookie</code> at startup to continue the profile the server already established. Lock it away and server-to-browser identity continuity breaks — silently, with no error anywhere.
+          </div>
+          <p class="fine measure">Note that resolution never reads consent. No consent simply means no selections arrive, and no selections resolve to baseline — which is why a consent bug and a content bug look identical from the page.</p>
+        </div>
+      </article>
+
+      <!-- P5 -->
+      <article class="prim">
+        <div><span class="prim-idx">05</span></div>
+        <div class="prim-body">
+          <h3>The Contentful fetch contract</h3>
+          <p>This is the single largest cause of &ldquo;it just renders the baseline and I can&rsquo;t see why.&rdquo; Three rules, all about the shape of the payload you hand the resolver.</p>
+          <figure class="code">
+            <figcaption>one locale, enough depth</figcaption>
+<pre><b>const</b> baselineEntry = <b>await</b> client.getEntry(entryId, {
+  <em>locale</em>: <em>'en-US'</em>,   <i>// one concrete locale</i>
+  <em>include</em>: <b>10</b>,        <i>// depth for the whole variant chain</i>
+});
+
+<s>// await client.withAllLocales.getEntry(...)   locale-keyed fields</s>
+<s>// ?locale=*                                   cannot be resolved</s></pre>
+          </figure>
+          <div class="tablewrap">
+            <table>
+              <caption>The three payload rules, and how each one fails</caption>
+              <thead>
+                <tr><th scope="col">Rule</th><th scope="col">Why</th><th scope="col">Symptom when broken</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">One concrete locale</th>
+                  <td>All-locale payloads produce locale-keyed field maps the resolver cannot read.</td>
+                  <td>Always baseline.</td>
+                </tr>
+                <tr>
+                  <th scope="row">Enough include depth</th>
+                  <td>The chain is entry → <code>nt_experiences</code> → <code>nt_variants</code> → variant content. Unresolved links get filtered out.</td>
+                  <td>Always baseline.</td>
+                </tr>
+                <tr>
+                  <th scope="row">Publish in dependency order</th>
+                  <td>Variants, then experiences, then baseline. The Delivery API only sees published content.</td>
+                  <td>Works in preview, fails in production.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </article>
+
+      <!-- P6 -->
+      <article class="prim">
+        <div><span class="prim-idx">06</span></div>
+        <div class="prim-body">
+          <h3>Where you resolve decides flash versus cacheability</h3>
+          <p>This is not an SDK setting — it is the one architecture decision the SDK forces you to make, and it is the same decision in every framework. You cannot have both.</p>
+          <div class="compare">
+            <div>
+              <span class="who">Resolve in the browser</span>
+              <p class="win">Page stays static and CDN-cacheable.</p>
+              <p class="lose">Flashes baseline before the variant appears.</p>
+              <p>The server does no per-visitor work, so one cached HTML document serves everyone. Worst above the fold, where the flash is most visible.</p>
+            </div>
+            <div>
+              <span class="who">Resolve on the server</span>
+              <p class="win">No flash — correct content in the first byte.</p>
+              <p class="lose">Route renders per request, not shareable.</p>
+              <p>Reading cookies and headers is what makes it per-visitor, and that is exactly what makes the output un-shareable across visitors.</p>
+            </div>
+          </div>
+          <p class="fine measure">Only the personalized resolution is per-request. Routes that don&rsquo;t personalize, and the raw baseline content itself, can still follow whatever cache policy you like.</p>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ============ PART TWO ============ -->
+  <section class="band">
+    <div class="shell stack-lg">
+
+      <div class="part">
+        <span class="part-tag">Part two</span>
+        <h2>Next.js App Router specifics</h2>
+        <p class="lede measure">The Next.js adapter is a thin binding, not a new runtime — it wires the Node SDK for request-time decisions to the React Web SDK for after hydration. Seven things are particular to it.</p>
+      </div>
+
+      <!-- N1 -->
+      <article class="prim">
+        <div><span class="prim-idx">01</span></div>
+        <div class="prim-body">
+          <h3>Import subpaths, never the package root</h3>
+          <p>The root of <code>@contentful/optimization-nextjs</code> has <strong>no runtime export</strong> at all. That is deliberate: each subpath is one runtime and one type surface, so server and client boundaries stay visible in your import lines.</p>
+          <figure class="code">
+            <figcaption>the four that matter for a basic build</figcaption>
+<pre><i>// server binding, request family, explicit handoff helpers</i>
+<b>import</b> { bindNextjsAppRouterServerOptimization }
+  <b>from</b> <em>'@contentful/optimization-nextjs/app-router/server'</em>;
+
+<i>// the proxy / middleware request-context forwarder</i>
+<b>import</b> { createNextjsOptimizationContextHandler }
+  <b>from</b> <em>'@contentful/optimization-nextjs/request-handler'</em>;
+
+<i>// browser hooks and bound actions ('use client' modules)</i>
+<b>import</b> { useOptimizationActions }
+  <b>from</b> <em>'@contentful/optimization-nextjs/client'</em>;
+
+<i>// client-side binding for Client Components</i>
+<b>import</b> { bindNextjsAppRouterClientOptimization }
+  <b>from</b> <em>'@contentful/optimization-nextjs/app-router/client'</em>;</pre>
+          </figure>
+          <div class="note is-flag">
+            <b>Older material will send you wrong here.</b> A fair amount of writing describes a factory called <code>createNextjsAppRouterOptimization</code> imported from <code>@contentful/optimization-nextjs/app-router</code>. In 1.2.0 neither exists — there is no bare <code>/app-router</code> export, only <code>/app-router/server</code> and <code>/app-router/client</code>. When a name doesn&rsquo;t resolve, check the installed package&rsquo;s own README rather than the guide you were reading.
+          </div>
+        </div>
+      </article>
+
+      <!-- N2 -->
+      <article class="prim">
+        <div><span class="prim-idx">02</span></div>
+        <div class="prim-body">
+          <h3>Bind once, in a server-only module</h3>
+          <p>One call, one module, imported everywhere else. A second binding creates a second SDK instance competing with the first for the same visitor. The <code>server-only</code> import is what turns an accidental client import into a build error instead of a leak.</p>
+          <figure class="code">
+            <figcaption>lib/optimization.js</figcaption>
+<pre><b>import</b> <em>'server-only'</em>;
+<b>import</b> { bindNextjsAppRouterServerOptimization }
+  <b>from</b> <em>'@contentful/optimization-nextjs/app-router/server'</em>;
+
+<b>export const</b> CONSENT_COOKIE = <em>'app-personalization-consent'</em>;
+
+<b>export const</b> optimization = bindNextjsAppRouterServerOptimization({
+  <em>clientId</em>:    process.env.NEXT_PUBLIC_OPTIMIZATION_CLIENT_ID ?? <em>''</em>,
+  <em>environment</em>: process.env.NEXT_PUBLIC_OPTIMIZATION_ENVIRONMENT ?? <em>'main'</em>,
+  <em>locale</em>:      <em>'en-US'</em>,
+  <em>consent</em>: {
+    <i>// The app owns the record. The SDK never writes this cookie.</i>
+    <em>server</em>: ({ cookies }) =&gt;
+      cookies.get(CONSENT_COOKIE)?.value === <em>'granted'</em>
+        ? { <em>events</em>: <b>true</b>, <em>persistence</em>: <b>true</b> }
+        : <b>false</b>,
+    <em>clientDefaults</em>: { <em>consent</em>: <b>false</b>, <em>persistenceConsent</em>: <b>false</b> },
+  },
+  <i>// Add `contentful: { client }` only if you want the SDK to fetch.</i>
+});</pre>
+          </figure>
+        </div>
+      </article>
+
+      <!-- N3 -->
+      <article class="prim">
+        <div><span class="prim-idx">03</span></div>
+        <div class="prim-body">
+          <h3>The proxy boundary is required, not optional</h3>
+          <p>Server Components cannot see the incoming request URL on their own. This handler forwards sanitized URL, headers, and cookies so the request-personalized runtime can resolve a variant before markup is sent. Skip it and nothing works.</p>
+          <p>The filename and export name changed with Next.js 16: <code>proxy.ts</code> exporting <code>proxy</code>, where 13–15 used <code>middleware.ts</code> exporting <code>middleware</code>. The body is identical.</p>
+          <figure class="code">
+            <figcaption>proxy.ts — Next.js 16</figcaption>
+<pre><b>import</b> { createNextjsOptimizationContextHandler }
+  <b>from</b> <em>'@contentful/optimization-nextjs/request-handler'</em>;
+
+<b>export const</b> proxy = createNextjsOptimizationContextHandler();
+
+<b>export const</b> config = {
+  <i>// Must cover every route that personalizes per request.</i>
+  <em>matcher</em>: [<em>'/((?!_next/static|_next/image|favicon.ico|api).*)'</em>],
+};</pre>
+          </figure>
+          <div class="note is-flag">
+            <b>This one fails loudly, which is a mercy.</b> Wrong filename, wrong export name, or a matcher that misses the route, and the bound root <strong>throws</strong>. It does not quietly fall back to baseline. If you see a startup error mentioning the handler, this is it.
+          </div>
+        </div>
+      </article>
+
+      <!-- N4 -->
+      <article class="prim">
+        <div><span class="prim-idx">04</span></div>
+        <div class="prim-body">
+          <h3>Two surfaces: <code>optimization.request</code> versus the top-level members</h3>
+          <p>If you remember one Next.js-specific thing, this is it. The binding gives you the same components twice, and the difference is <strong>whether they read the request</strong>.</p>
+          <p>The <code>request</code> family derives URL, route key, page payload, headers, and cookies from the forwarded request context automatically — per visitor, one Experience API round trip per request, not shareable. The top-level members take <strong>explicit inputs only</strong> and never touch <code>next/headers</code> or <code>cookies()</code>, which is precisely what makes their output cacheable.</p>
+          <figure class="code">
+            <figcaption>naming them apart is worth the keystrokes</figcaption>
+<pre><i>// Private, per-visitor. Reads forwarded request context.</i>
+<b>export const</b> {
+  NextAppAutoPageTracker: <b>RequestNextAppAutoPageTracker</b>,
+  OptimizationRoot:       <b>RequestOptimizationRoot</b>,
+  OptimizedEntry:         <b>RequestOptimizedEntry</b>,
+} = optimization.request;
+
+<i>// Explicit inputs only. Never reads headers — so it can be cached.</i>
+<b>export const</b> {
+  OptimizationRoot:  <b>ExplicitOptimizationRoot</b>,
+  OptimizedEntry:    <b>ExplicitOptimizedEntry</b>,
+  createPublicPermutationHandoff,
+  OptimizationAnalyticsRoot,
+} = optimization;</pre>
+          </figure>
+          <p class="fine measure">Four members hang off <code>optimization.request</code>: <code>OptimizationRoot</code>, <code>OptimizationProvider</code>, <code>OptimizedEntry</code>, and <code>NextAppAutoPageTracker</code>. Mixing a request component into a route you intended to cache is the mistake this naming convention exists to prevent.</p>
+        </div>
+      </article>
+
+      <!-- N5 -->
+      <article class="prim">
+        <div><span class="prim-idx">05</span></div>
+        <div class="prim-body">
+          <h3>The handoff</h3>
+          <p>The server resolved a variant. Now the browser has to hydrate <em>without</em> undoing that. The handoff is the object that carries the decision across, and two of its fields do the real work.</p>
+          <p><code>cache.scope</code> declares who the render belongs to — <code>private-request</code> for a per-visitor render, or a public permutation for one shared across visitors. <code>hydration: 'preserve-server'</code> is what stops the variant flashing back to baseline when React takes over.</p>
+          <figure class="code">
+            <figcaption>the cacheable path — you supply the selections</figcaption>
+<pre><b>const</b> handoff = optimization.createPublicPermutationHandoff({
+  <em>permutationKey</em>: permutation.slug,
+  <em>locale</em>: <em>'en-US'</em>,
+  <em>entryIds</em>: permutation.entryIds,
+  <em>selectedOptimizations</em>: permutation.selectedOptimizations,
+  <em>hydration</em>: <em>'preserve-server'</em>,
+  <em>initialPageEvent</em>: <em>'emit'</em>,
+});</pre>
+          </figure>
+          <p class="fine measure">The <code>request</code> family builds its handoff for you and marks it <code>private-request</code>. You only construct one by hand when you are deliberately building something shareable.</p>
+        </div>
+      </article>
+
+      <!-- N6 -->
+      <article class="prim">
+        <div><span class="prim-idx">06</span></div>
+        <div class="prim-body">
+          <h3>Root, tracker, entry — the three things you render</h3>
+          <p><strong><code>OptimizationRoot</code></strong> wraps the participating tree: provider plus initial page-event wiring. (<code>OptimizationProvider</code> is the same thing without the page-event wiring.) <strong><code>NextAppAutoPageTracker</code></strong> emits the page view. <strong><code>OptimizedEntry</code></strong> is a render prop that hands your component the resolved entry.</p>
+          <figure class="code">
+            <figcaption>the whole personalized island</figcaption>
+<pre>&lt;<b>RequestOptimizationRoot</b>&gt;
+  &lt;<b>Suspense</b>&gt;
+    &lt;<b>RequestNextAppAutoPageTracker</b> /&gt;
+  &lt;/<b>Suspense</b>&gt;
+
+  &lt;<b>RequestOptimizedEntry</b> <em>baselineEntry</em>={hero}&gt;
+    {(resolved) =&gt; &lt;<b>Hero</b> <em>entry</em>={resolved} /&gt;}
+  &lt;/<b>RequestOptimizedEntry</b>&gt;
+&lt;/<b>RequestOptimizationRoot</b>&gt;</pre>
+          </figure>
+          <div class="note">
+            <b>Three constraints, each of which will catch you once.</b> The tracker reads search params, so it <strong>must</strong> sit inside a <code>Suspense</code> boundary. Exactly one owner emits the initial page event — server or browser, never both, or every visit double-counts. And <code>OptimizedEntry</code> accepts exactly <strong>one</strong> source: <code>baselineEntry</code> if your app fetched it, or <code>entryId</code> / <code>managedEntry</code> if you configured <code>contentful: { client }</code> and want the SDK to fetch. Passing two is an error, not a preference.
+          </div>
+        </div>
+      </article>
+
+      <!-- N7 -->
+      <article class="prim">
+        <div><span class="prim-idx">07</span></div>
+        <div class="prim-body">
+          <h3>A personalized route is a dynamic route</h3>
+          <p>Primitive 06 in part one, expressed as Next.js config. Reading cookies or headers opts a route out of static generation — which is correct and what you want. The failure mode is leaving static-generation directives on that same route, where the two intentions contradict each other.</p>
+          <figure class="code">
+            <figcaption>say it out loud rather than relying on the bail-out</figcaption>
+<pre><b>export const</b> dynamic = <em>'force-dynamic'</em>;
+
+<s>// Don't also ship any of these on a personalized route:</s>
+<s>//   generateStaticParams()</s>
+<s>//   export const dynamic = 'force-static'</s>
+<s>//   export const revalidate = 3600</s></pre>
+          </figure>
+          <p>A route that genuinely must stay cached has two honest options: keep personalization client-side there and accept the flash, or serve it from a public-permutation handoff. What it cannot do is run the per-request server preflight for its own markup.</p>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ============ ALSO IN THE BOX ============ -->
+  <section class="band">
+    <div class="shell stack-lg">
+      <div class="part">
+        <span class="part-tag">Deliberately omitted</span>
+        <h2>Also in the box, not needed for first light</h2>
+      </div>
+      <p class="measure" style="color:var(--ink-soft)">Everything above is what a first working integration needs. These exist, are worth knowing by name, and can all wait until it renders:</p>
+      <div class="tablewrap">
+        <table>
+          <caption>Named so you recognize them later, not so you wire them now</caption>
+          <thead>
+            <tr><th scope="col">Capability</th><th scope="col">Surface</th><th scope="col">What it is</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Merge tags</th>
+              <td class="mono">isMergeTagEntry<br>getMergeTagValue</td>
+              <td>Profile-backed substitutions inside content — a first name, a city. Separate mechanism from entry replacement.</td>
+            </tr>
+            <tr>
+              <th scope="row">Custom Flags</th>
+              <td class="mono">getFlag</td>
+              <td>Read a named flag off the profile. On the server, exposure reporting needs an explicit <code>trackFlagView()</code>.</td>
+            </tr>
+            <tr>
+              <th scope="row">Interaction tracking</th>
+              <td class="mono">trackEntryInteraction</td>
+              <td>Views, clicks, and hovers on resolved entries, sent to the Insights API. <strong>Required if you want experiment results.</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">Live updates</th>
+              <td class="mono">liveUpdates</td>
+              <td>Opt-in re-resolution after load, for when identity or consent changes mid-session. Not a fix for a broken first render.</td>
+            </tr>
+            <tr>
+              <th scope="row">Preview panel</th>
+              <td class="mono">optimization-web-preview-panel</td>
+              <td>A separate package. In-browser UI for impersonating audiences while testing.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="shell stack-sm">
+    <p class="eyebrow">Sources</p>
+    <p class="fine">API names and shapes verified against <code>@contentful/optimization-nextjs@1.2.0</code> as installed — its README, its <code>exports</code> map, and its emitted type declarations — rather than against prose. Cross-SDK behavior (resolution order, control-assignment semantics, the single-locale requirement, the two consent axes) from the Contentful developer documentation on entry personalization and variant resolution. Boilerplate shapes cross-checked against a working App Router integration on Next.js 16.</p>
+  </div>
+</footer>
