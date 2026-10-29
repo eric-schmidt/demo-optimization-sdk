@@ -1,0 +1,725 @@
+<title>From Entry to Variant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+  /* ============ TOKENS — complete light palette on bare :root ============
+     Inherited from the sibling explainer (optimization-sdk-explainer.html) so
+     this guide reads as part of the same set. */
+  :root {
+    --paper:        #f4f6f6;
+    --surface:      #ffffff;
+    --surface-sunk: #eaeeee;
+    --ink:          #151b21;
+    --ink-soft:     #3c4750;
+    --ink-mute:     #5f6d74;
+    --rule:         #d3dbdb;
+    --rule-soft:    #e3e9e9;
+
+    /* Domain hues — server is the personalization machinery, client is the
+       browser/draft path, edge ties the two in the accent rule. */
+    --server:       #0c6a6f;
+    --server-bg:    #e2f0f0;
+    --server-rule:  #a9cfd0;
+    --client:       #9d6410;
+    --client-bg:    #f8eedd;
+    --client-rule:  #dfc394;
+    --edge:         #574d84;
+    --edge-bg:      #eceaf5;
+    --edge-rule:    #bcb4d9;
+
+    --warn:         #9a4a20;
+    --warn-bg:      #f9e9e1;
+
+    --shadow:       0 1px 2px rgba(21,27,33,.05), 0 8px 24px -12px rgba(21,27,33,.14);
+
+    --measure:      66ch;
+    --step--1:      .8125rem;
+    --step-0:       1.0625rem;
+    --step-1:       1.1875rem;
+    --step-2:       clamp(1.35rem, 2.4vw, 1.6rem);
+    --step-3:       clamp(1.7rem, 3.4vw, 2.15rem);
+    --step-4:       clamp(2.3rem, 5.4vw, 3.5rem);
+
+    --display: "Archivo", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --body:    "Source Serif 4", Georgia, "Times New Roman", serif;
+    --mono:    "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:        #10151a;
+      --surface:      #171e24;
+      --surface-sunk: #1e262d;
+      --ink:          #e8edee;
+      --ink-soft:     #c0cacd;
+      --ink-mute:     #8a999f;
+      --rule:         #2c363d;
+      --rule-soft:    #232c33;
+
+      --server:       #56b8bd;
+      --server-bg:    #10322f;
+      --server-rule:  #2c5a58;
+      --client:       #dfa445;
+      --client-bg:    #33270f;
+      --client-rule:  #5f4a1e;
+      --edge:         #a79ada;
+      --edge-bg:      #232045;
+      --edge-rule:    #423c6b;
+
+      --warn:         #dd9269;
+      --warn-bg:      #331d13;
+
+      --shadow:       0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+      color-scheme: dark;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:        #10151a;
+    --surface:      #171e24;
+    --surface-sunk: #1e262d;
+    --ink:          #e8edee;
+    --ink-soft:     #c0cacd;
+    --ink-mute:     #8a999f;
+    --rule:         #2c363d;
+    --rule-soft:    #232c33;
+
+    --server:       #56b8bd;
+    --server-bg:    #10322f;
+    --server-rule:  #2c5a58;
+    --client:       #dfa445;
+    --client-bg:    #33270f;
+    --client-rule:  #5f4a1e;
+    --edge:         #a79ada;
+    --edge-bg:      #232045;
+    --edge-rule:    #423c6b;
+
+    --warn:         #dd9269;
+    --warn-bg:      #331d13;
+
+    --shadow:       0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+    color-scheme: dark;
+  }
+
+  /* ============ BASE ============ */
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: var(--step-0);
+    line-height: 1.68;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible { outline: 2px solid var(--server); outline-offset: 3px; border-radius: 2px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  }
+  html { scroll-behavior: smooth; }
+
+  /* ============ LAYOUT ============ */
+  .shell { max-width: 1100px; margin: 0 auto; padding: 0 clamp(1.1rem, 4vw, 2.75rem); }
+  .col   { max-width: var(--measure); }
+  .col-wide { max-width: 84ch; }
+
+  main > section { padding-block: clamp(2.6rem, 6vw, 4.25rem); border-top: 1px solid var(--rule-soft); }
+
+  .stack     { display: flex; flex-direction: column; gap: 1.15rem; }
+  .stack-lg  { display: flex; flex-direction: column; gap: 2rem; }
+  .stack-sm  { display: flex; flex-direction: column; gap: .6rem; }
+
+  /* ============ TYPE ============ */
+  h1, h2, h3, h4 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.15; }
+  h1 { font-size: var(--step-4); font-weight: 700; letter-spacing: -.025em; }
+  h2 { font-size: var(--step-3); font-weight: 700; letter-spacing: -.018em; }
+  h3 { font-size: var(--step-2); font-weight: 600; letter-spacing: -.01em; }
+  h4 { font-size: .95rem; font-weight: 600; }
+  p  { margin: 0; }
+  a  { color: var(--server); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+  .eyebrow {
+    font-family: var(--display); font-size: .7rem; font-weight: 600;
+    letter-spacing: .13em; text-transform: uppercase; color: var(--ink-mute);
+  }
+  .lede { font-size: var(--step-1); color: var(--ink-soft); }
+  .fine { font-size: var(--step--1); color: var(--ink-mute); line-height: 1.6; }
+
+  code, .mono { font-family: var(--mono); font-size: .875em; font-variant-ligatures: none; }
+  :not(pre) > code { background: var(--surface-sunk); padding: .1em .35em; border-radius: 3px; color: var(--ink); }
+
+  ul, ol { margin: 0; padding-left: 1.25rem; }
+  li + li { margin-top: .4rem; }
+  li::marker { color: var(--ink-mute); }
+  .stack ul, .stack ol { max-width: var(--measure); }
+
+  /* ============ HEADER ============ */
+  header.hero { padding-block: clamp(2.75rem, 8vw, 5rem) clamp(1.75rem, 5vw, 2.75rem); }
+  .hero-rule {
+    height: 5px; width: 100%;
+    background: linear-gradient(90deg, var(--server) 0 38%, var(--client) 38% 76%, var(--edge) 76% 100%);
+    margin-bottom: clamp(1.6rem, 4vw, 2.35rem);
+  }
+  .meta-strip { display: flex; flex-wrap: wrap; gap: .5rem .75rem; margin-top: 1.75rem; padding-top: 1.25rem; border-top: 1px solid var(--rule); }
+  .chip {
+    font-family: var(--mono); font-size: .74rem; font-weight: 500;
+    padding: .3rem .6rem; border-radius: 3px;
+    background: var(--surface-sunk); color: var(--ink-soft); border: 1px solid var(--rule-soft);
+  }
+
+  /* ============ NAV ============ */
+  nav.jump { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--paper); border-block: 1px solid var(--rule-soft); }
+  @supports (backdrop-filter: blur(8px)) { nav.jump { backdrop-filter: blur(8px); } }
+  @supports (background: color-mix(in srgb, red 50%, transparent)) {
+    nav.jump { background: color-mix(in srgb, var(--paper) 92%, transparent); }
+  }
+  nav.jump ol {
+    list-style: none; margin: 0; padding: 0;
+    display: flex; gap: 0; overflow-x: auto;
+    font-family: var(--display); font-size: .76rem; font-weight: 600;
+    letter-spacing: .04em; text-transform: uppercase;
+  }
+  nav.jump li { margin: 0; flex: none; }
+  nav.jump a { display: block; padding: .8rem .95rem; color: var(--ink-mute); text-decoration: none; white-space: nowrap; border-bottom: 2px solid transparent; }
+  nav.jump a:hover { color: var(--ink); border-bottom-color: var(--rule); }
+
+  /* ============ STEP HEADING ============ */
+  .step-head { display: flex; align-items: baseline; gap: .8rem; }
+  .step-num {
+    font-family: var(--mono); font-size: .82rem; font-weight: 600;
+    color: var(--server); border: 1px solid var(--server-rule); background: var(--server-bg);
+    border-radius: 3px; padding: .12rem .5rem; flex: none; line-height: 1.4;
+  }
+  .step-file {
+    font-family: var(--mono); font-size: .78rem; color: var(--ink-mute);
+    background: var(--surface-sunk); border: 1px solid var(--rule-soft);
+    border-radius: 3px; padding: .18rem .45rem; align-self: center;
+  }
+
+  /* ============ TABLES ============ */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 42rem; font-size: .92rem; table-layout: fixed; }
+  caption { text-align: left; padding: .9rem 1rem; font-family: var(--display); font-size: .82rem; font-weight: 600; color: var(--ink-mute); border-bottom: 1px solid var(--rule-soft); }
+  th, td { text-align: left; padding: .75rem 1rem; border-top: 1px solid var(--rule-soft); vertical-align: top; line-height: 1.5; }
+  thead th {
+    font-family: var(--display); font-size: .7rem; font-weight: 700;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--ink-mute);
+    background: var(--surface-sunk); border-top: 0;
+  }
+  tbody th { font-family: var(--display); font-weight: 600; font-size: .9rem; }
+  td.mono, th.mono { font-family: var(--mono); font-size: .78rem; }
+
+  /* ============ CODE ============ */
+  figure.code { margin: 0; border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; background: var(--surface); }
+  figure.code figcaption {
+    font-family: var(--mono); font-size: .74rem; font-weight: 500;
+    padding: .55rem .85rem; color: var(--ink-mute);
+    background: var(--surface-sunk); border-bottom: 1px solid var(--rule-soft);
+  }
+  pre { margin: 0; padding: 1rem .95rem; overflow-x: auto; font-family: var(--mono); font-size: .8rem; line-height: 1.7; color: var(--ink-soft); }
+  pre b  { color: var(--ink); font-weight: 600; }
+  pre i  { color: var(--ink-mute); font-style: normal; }
+  pre em.s { color: var(--server); font-style: normal; font-weight: 600; }
+  pre em.c { color: var(--client); font-style: normal; font-weight: 600; }
+
+  /* ============ FIGURE / DIAGRAM ============ */
+  figure.fig { margin: 0; display: flex; flex-direction: column; gap: .85rem; }
+  figure.fig svg { width: 100%; height: auto; display: block; color: var(--ink); }
+  .figbox { border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); padding: 1.25rem 1rem; overflow-x: auto; }
+  .figbox svg { min-width: 40rem; }
+  figcaption.cap { font-size: var(--step--1); color: var(--ink-mute); line-height: 1.6; max-width: 76ch; }
+
+  /* ============ CALLOUT ============ */
+  .callout {
+    border-left: 3px solid var(--warn); background: var(--warn-bg);
+    padding: 1rem 1.15rem; border-radius: 0 4px 4px 0;
+    display: flex; flex-direction: column; gap: .5rem; max-width: 82ch;
+  }
+  .callout .eyebrow { color: var(--warn); }
+  .callout p { font-size: .95rem; color: var(--ink-soft); }
+  .callout.info { border-left-color: var(--server); background: var(--server-bg); }
+  .callout.info .eyebrow { color: var(--server); }
+
+  /* ============ CHECKLIST ============ */
+  ol.check { list-style: none; padding: 0; margin: 0; counter-reset: c; display: flex; flex-direction: column; gap: 0; max-width: 82ch; }
+  ol.check li {
+    counter-increment: c; margin: 0; position: relative;
+    padding: .85rem 0 .85rem 2.6rem; border-top: 1px solid var(--rule-soft);
+    line-height: 1.55;
+  }
+  ol.check li:first-child { border-top: 0; }
+  ol.check li::before {
+    content: counter(c); position: absolute; left: 0; top: .85rem;
+    font-family: var(--mono); font-size: .78rem; font-weight: 600; color: var(--server);
+    width: 1.7rem; height: 1.7rem; display: grid; place-items: center;
+    border: 1px solid var(--server-rule); border-radius: 100px; background: var(--server-bg);
+  }
+  ol.check b { font-family: var(--display); font-weight: 600; color: var(--ink); }
+
+  /* ============ TROUBLESHOOT ============ */
+  ol.tshoot { counter-reset: t; list-style: none; padding: 0; margin: 0; max-width: 82ch; }
+  ol.tshoot li { counter-increment: t; position: relative; padding-left: 2rem; }
+  ol.tshoot li + li { margin-top: .7rem; }
+  ol.tshoot li::before {
+    content: counter(t); position: absolute; left: 0; top: .05em;
+    font-family: var(--mono); font-size: .72rem; font-weight: 600; color: var(--ink-mute);
+    border: 1px solid var(--rule); border-radius: 3px; padding: 0 .4rem;
+  }
+
+  footer { border-top: 1px solid var(--rule); padding-block: 2.25rem 3.25rem; }
+
+  .skip { position: absolute; left: -9999px; background: var(--surface); color: var(--ink); padding: .6rem .9rem; border: 1px solid var(--rule); border-radius: 4px; }
+  .skip:focus { left: 1rem; top: 1rem; z-index: 50; }
+</style>
+
+<a class="skip" href="#idea">Skip to content</a>
+
+<header class="hero">
+  <div class="shell">
+    <div class="hero-rule"></div>
+    <div class="stack col-wide">
+      <p class="eyebrow">Contentful Personalization &middot; Optimization SDK &middot; Next.js</p>
+      <h1>From entry to variant</h1>
+      <p class="lede">A beginner&rsquo;s map of the wiring that makes one Contentful entry render as a
+        personalized variant &mdash; picked on the server, before any HTML reaches the browser.
+        Everything here is the real code in this repo, not the pre-1.0 API the general docs still describe.</p>
+    </div>
+    <div class="meta-strip">
+      <span class="chip">@contentful/optimization-nextjs 1.2.0</span>
+      <span class="chip">Next.js 16 &middot; App Router</span>
+      <span class="chip">React 19</span>
+      <span class="chip">demo-optimization-sdk</span>
+    </div>
+  </div>
+</header>
+
+<nav class="jump" aria-label="Sections">
+  <div class="shell">
+    <ol>
+      <li><a href="#idea">The idea</a></li>
+      <li><a href="#wires">Four wires</a></li>
+      <li><a href="#proxy">1 &middot; Proxy</a></li>
+      <li><a href="#bind">2 &middot; Bind</a></li>
+      <li><a href="#boundary">3 &middot; Boundary</a></li>
+      <li><a href="#fetch">4 &middot; Fetch deep</a></li>
+      <li><a href="#wrap">5 &middot; Wrap</a></li>
+      <li><a href="#defer">Defer</a></li>
+      <li><a href="#checklist">Checklist</a></li>
+    </ol>
+  </div>
+</nav>
+
+<main class="shell">
+
+  <!-- ============ THE IDEA ============ -->
+  <section id="idea">
+    <div class="stack-lg">
+      <div class="stack col">
+        <p class="eyebrow">The idea in one paragraph</p>
+        <h2>One entry, many visitors, one variant each</h2>
+        <p>An author attaches <b>experiences</b> &mdash; A/B tests or audience-targeted variants &mdash; to a
+          content entry inside Contentful. Your app fetches that entry <em>and its attached experiences</em>
+          the way it fetches anything else, then hands each entry to the SDK. The SDK reads the current
+          visitor&rsquo;s profile, <b>picks the matching variant</b>, and renders it &mdash; falling back to the
+          original (&ldquo;baseline&rdquo;) entry whenever nothing matches. Your whole job is to wire things so that
+          choice can happen <em>on the server</em>, before the HTML is sent, so the visitor never sees the baseline
+          flash and then swap.</p>
+      </div>
+
+      <figure class="fig">
+        <div class="figbox">
+          <svg viewBox="0 0 1300 262" role="img" aria-label="A request flows from the browser through proxy.js, which forwards the visitor's context to a Server Component that fetches the entry with its experiences at include depth 10; OptimizedEntry then matches the visitor profile against those experiences and picks a variant, and the HTML response is sent with the variant already baked in. When no experience matches, OptimizedEntry falls back to the baseline entry.">
+            <defs>
+              <marker id="ah" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0 0 L10 5 L0 10 z" fill="currentColor"></path>
+              </marker>
+              <marker id="ahs" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--server)"></path>
+              </marker>
+            </defs>
+
+            <!-- profile input -->
+            <rect x="838" y="16" width="170" height="30" rx="15" fill="var(--server-bg)" stroke="var(--server)" stroke-width="1"></rect>
+            <text x="923" y="35" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="var(--server)">visitor profile</text>
+            <line x1="923" y1="46" x2="923" y2="88" stroke="var(--server)" stroke-width="1.5" marker-end="url(#ahs)"></line>
+            <text x="936" y="72" text-anchor="start" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--server)">matched against</text>
+
+            <!-- five spine nodes: y 90..160, center 125 -->
+            <!-- A Browser -->
+            <rect x="16" y="90" width="170" height="70" rx="4" fill="var(--paper)" stroke="var(--rule)" stroke-width="1.5"></rect>
+            <text x="101" y="122" text-anchor="middle" font-family="Archivo, sans-serif" font-size="14" font-weight="600" fill="currentColor">Browser</text>
+            <text x="101" y="141" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink-mute)">visitor + cookie</text>
+
+            <!-- B proxy -->
+            <rect x="290" y="90" width="170" height="70" rx="4" fill="var(--paper)" stroke="var(--rule)" stroke-width="1.5"></rect>
+            <text x="375" y="122" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" font-weight="600" fill="currentColor">proxy.js</text>
+            <text x="375" y="141" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink-mute)">context handler</text>
+
+            <!-- C server fetch -->
+            <rect x="564" y="90" width="170" height="70" rx="4" fill="var(--paper)" stroke="var(--rule)" stroke-width="1.5"></rect>
+            <text x="649" y="118" text-anchor="middle" font-family="Archivo, sans-serif" font-size="14" font-weight="600" fill="currentColor">Server Component</text>
+            <text x="649" y="139" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink-mute)">fetch, include: 10</text>
+
+            <!-- D OptimizedEntry — emphasized -->
+            <rect x="838" y="90" width="170" height="70" rx="4" fill="var(--server-bg)" stroke="var(--server)" stroke-width="2"></rect>
+            <text x="923" y="118" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" font-weight="600" fill="var(--server)">OptimizedEntry</text>
+            <text x="923" y="139" text-anchor="middle" font-family="Archivo, sans-serif" font-size="11.5" font-weight="600" fill="var(--server)">picks the variant</text>
+
+            <!-- E response -->
+            <rect x="1112" y="90" width="170" height="70" rx="4" fill="var(--paper)" stroke="var(--rule)" stroke-width="1.5"></rect>
+            <text x="1197" y="122" text-anchor="middle" font-family="Archivo, sans-serif" font-size="14" font-weight="600" fill="currentColor">Response</text>
+            <text x="1197" y="141" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink-mute)">no baseline flash</text>
+
+            <!-- spine arrows at y=125 -->
+            <line x1="186" y1="125" x2="288" y2="125" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)"></line>
+            <text x="237" y="116" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink-mute)">request</text>
+
+            <line x1="460" y1="125" x2="562" y2="125" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)"></line>
+            <text x="511" y="116" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink-mute)">forwards context</text>
+
+            <line x1="734" y1="125" x2="836" y2="125" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)"></line>
+            <text x="785" y="110" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink-mute)">baseline +</text>
+            <text x="785" y="121" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink-mute)">experiences</text>
+
+            <line x1="1008" y1="125" x2="1110" y2="125" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)"></line>
+            <text x="1059" y="116" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink-mute)">variant HTML</text>
+
+            <!-- fallback -->
+            <line x1="923" y1="160" x2="923" y2="206" stroke="var(--ink-mute)" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#ah)"></line>
+            <text x="923" y="228" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink-mute)">no match &rarr; baseline entry</text>
+          </svg>
+        </div>
+        <figcaption class="cap">The path a single request takes. The visitor&rsquo;s identity enters through the proxy;
+          the variant is chosen at <code>OptimizedEntry</code> on the server, so the response already contains the right
+          content. Miss any wire on this line and the swap either can&rsquo;t run or falls back to baseline &mdash; silently.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ============ FOUR WIRES ============ -->
+  <section id="wires">
+    <div class="stack-lg">
+      <div class="stack col">
+        <p class="eyebrow">The map</p>
+        <h2>Four wires, plus one fetch rule</h2>
+        <p>Personalization in this repo is four connected pieces and one thing you must get right about the fetch.
+          Everything after this section walks them in order. Here is the whole map on one screen:</p>
+      </div>
+
+      <div class="tablewrap">
+        <table>
+          <caption>What each piece does, and where it lives</caption>
+          <colgroup>
+            <col style="width:22%"><col style="width:46%"><col style="width:32%">
+          </colgroup>
+          <thead>
+            <tr><th scope="col">Piece</th><th scope="col">What it does</th><th scope="col">File</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">The proxy</th><td>Forwards the visitor&rsquo;s request context (URL, cookies, headers) into Server Components.</td><td class="mono">src/proxy.js</td></tr>
+            <tr><th scope="row">The bound SDK</th><td>Configured once; hands back the React components you render with.</td><td class="mono">src/lib/optimization.js</td></tr>
+            <tr><th scope="row">The Root</th><td>Mounts the browser runtime and tracking inside a request-time boundary.</td><td class="mono">components/PersonalizationBoundary.jsx</td></tr>
+            <tr><th scope="row">The entry wrapper</th><td>Wraps each entry so the SDK can swap in the right variant.</td><td class="mono">components/ComponentResolver.jsx</td></tr>
+            <tr><th scope="row">The deep fetch</th><td>Requests enough reference depth that attached experiences actually resolve.</td><td class="mono">src/lib/client.js</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout info col-wide">
+        <p class="eyebrow">Trust the package, not the tutorials</p>
+        <p>The general personalization docs describe a <em>pre-1.0</em> API &mdash;
+          <code>createNextjsAppRouterOptimization</code>, a bare <code>/app-router</code> import, an
+          <code>initialPageEvent</code> prop. None of those exist in v1.x, and following them fails at build with
+          <code>Can&rsquo;t resolve '@contentful/optimization-nextjs/app-router'</code>. The authoritative reference for
+          the installed version is <code>node_modules/@contentful/optimization-nextjs/README.md</code>. This guide follows
+          the real v1.2.0 surface.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STEP 1 — PROXY ============ -->
+  <section id="proxy">
+    <div class="stack-lg">
+      <div class="stack col">
+        <div class="step-head">
+          <span class="step-num">Step 1</span>
+          <h3>Forward the request</h3>
+          <span class="step-file">src/proxy.js</span>
+        </div>
+        <p>Variant selection depends on <em>who</em> is asking, but Server Components can&rsquo;t see the raw request by
+          default. A proxy forwards a sanitized copy of it &mdash; the URL, cookies, and headers the SDK needs.</p>
+      </div>
+
+      <figure class="code col-wide">
+        <figcaption>src/proxy.js</figcaption>
+<pre><i>import</i> { createNextjsOptimizationContextHandler } <i>from</i> "@contentful/optimization-nextjs/request-handler";
+
+<i>// Next.js 16 names this file `proxy` and expects a `proxy` export.</i>
+<i>// Next.js 13&ndash;15 used `middleware`/`middleware` with the same body.</i>
+<b>export const</b> <em class="s">proxy</em> = <em class="s">createNextjsOptimizationContextHandler</em>();
+
+<b>export const</b> config = {
+  <i>// Must cover every personalized route; excludes `api` so Draft Mode</i>
+  <i>// and the revalidation webhook are not intercepted.</i>
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api).*)"],
+};</pre>
+      </figure>
+
+      <div class="stack col">
+        <ul>
+          <li><b>This boundary is required, not optional.</b> The request-personalized runtime depends on it for the forwarded URL. Skip it and selection can&rsquo;t run at all.</li>
+          <li><b>The filename tracks the framework version.</b> Next.js 16 uses <code>proxy.js</code> with a <code>proxy</code> export; 13&ndash;15 used <code>middleware</code>. Same body, different name.</li>
+          <li><b>The matcher must cover your personalized routes and exclude <code>api</code></b>, or your preview and webhook endpoints get intercepted.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STEP 2 — BIND ============ -->
+  <section id="bind">
+    <div class="stack-lg">
+      <div class="stack col">
+        <div class="step-head">
+          <span class="step-num">Step 2</span>
+          <h3>Bind the SDK once</h3>
+          <span class="step-file">src/lib/optimization.js</span>
+        </div>
+        <p>Configure the SDK a single time in a <code>server-only</code> module, then export the components it hands back.
+          The <code>optimization.request</code> family is the surface for private, per-visitor personalization.</p>
+      </div>
+
+      <figure class="code col-wide">
+        <figcaption>src/lib/optimization.js — trimmed to the essentials</figcaption>
+<pre><i>import</i> "server-only";
+<i>import</i> { bindNextjsAppRouterServerOptimization } <i>from</i> "@contentful/optimization-nextjs/app-router/server";
+
+<b>const</b> optimization = <em class="s">bindNextjsAppRouterServerOptimization</em>({
+  clientId: process.env.NEXT_PUBLIC_OPTIMIZATION_CLIENT_ID ?? "",
+  environment: process.env.NEXT_PUBLIC_OPTIMIZATION_ENVIRONMENT ?? "main",
+  locale: "en-US", <i>// ONE concrete locale &mdash; required; locale-keyed field maps can't resolve</i>
+  app: { name: "demo-optimization-sdk", version: "0.1.0" },
+  <i>// consent, allowedEventTypes, trackEntryInteraction &mdash; see &ldquo;Defer until it works&rdquo;</i>
+});
+
+<i>// The `request` family = private, per-visitor personalization.</i>
+<b>export const</b> { <em class="s">NextAppAutoPageTracker</em>, <em class="s">OptimizationRoot</em>, <em class="s">OptimizedEntry</em> } =
+  optimization.<em class="s">request</em>;</pre>
+      </figure>
+
+      <div class="stack col">
+        <ul>
+          <li><b>Bind exactly once.</b> A second binding starts a second SDK instance that competes with the first.</li>
+          <li><b><code>optimization.request</code> is the surface you want.</b> It auto-derives the URL, route key, page event, headers, and cookies from the proxy&rsquo;s forwarded context &mdash; you never assemble a handoff by hand. (The top-level exports are for cacheable / public and analytics-only cases; ignore them while learning.)</li>
+          <li><b><code>locale</code> is a single concrete value</b> and should match whatever your Live Preview provider uses.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STEP 3 — BOUNDARY ============ -->
+  <section id="boundary">
+    <div class="stack-lg">
+      <div class="stack col">
+        <div class="step-head">
+          <span class="step-num">Step 3</span>
+          <h3>Mount the Root behind a request-time boundary</h3>
+          <span class="step-file">PersonalizationBoundary.jsx</span>
+        </div>
+        <p>This is the most Next.js-16-specific step, and where beginners hit cryptic prerender errors. Two rules make it work.</p>
+      </div>
+
+      <div class="stack col">
+        <p><b>Rule A &mdash; everything browser-side goes inside <code>&lt;OptimizationRoot&gt;</code>.</b> The hooks need its
+          context, and the preview panel binds to the <code>window.contentfulOptimization</code> singleton it creates.</p>
+        <p><b>Rule B &mdash; the Root lives behind <code>await connection()</code> inside a <code>&lt;Suspense&gt;</code>.</b>
+          The SDK stamps its event payload with <code>new Date()</code>, an unstable value Next.js refuses to
+          <em>prerender</em>. <code>await connection()</code> opts the subtree into request-time rendering, which
+          personalization needs anyway. A <code>&lt;Suspense&gt;</code> boundary alone does <em>not</em> do this &mdash;
+          Suspense controls streaming, not whether a value may be prerendered.</p>
+      </div>
+
+      <figure class="code col-wide">
+        <figcaption>src/components/PersonalizationBoundary.jsx — shape</figcaption>
+<pre><b>export const</b> PersonalizationBoundary = <b>async</b> ({ children }) =&gt; {
+  <b>await</b> <em class="s">connection</em>();                     <i>// opt into request-time rendering</i>
+  <b>const</b> { isEnabled: preview } = <b>await</b> draftMode();
+
+  <b>return</b> (
+    &lt;<em class="s">OptimizationRoot</em>&gt;
+      &lt;<em class="s">NextAppAutoPageTracker</em> /&gt;         <i>// fires the page-view event</i>
+      {<i>/* consent sync, third-party identify, GTM data layer&hellip; */</i>}
+      {preview &amp;&amp; &lt;OptimizationPreviewPanel /&gt;}  <i>// author tooling only</i>
+      {children}
+    &lt;/<em class="s">OptimizationRoot</em>&gt;
+  );
+};</pre>
+      </figure>
+
+      <figure class="code col-wide">
+        <figcaption>src/app/[slug]/layout.jsx — mounted, wrapped in Suspense</figcaption>
+<pre>&lt;Suspense fallback={null}&gt;
+  &lt;PersonalizationBoundary&gt;{children}&lt;/PersonalizationBoundary&gt;
+&lt;/Suspense&gt;</pre>
+      </figure>
+
+      <div class="callout col-wide">
+        <p class="eyebrow">The gotcha this repo learned the hard way</p>
+        <p><code>page.jsx</code> needs its <b>own</b> <code>&lt;Suspense&gt;</code> and <code>await connection()</code>,
+          even though the layout already has one. Next.js prerenders a layout and its page-children as
+          <em>separate units</em>, so the layout&rsquo;s boundary is not an ancestor for prerender analysis. Miss it and you
+          get: <code>connection() accessed outside of &lt;Suspense&gt;</code>. Note too that personalization is scoped to
+          <code>/[slug]</code>, not the root layout &mdash; so routes that don&rsquo;t personalize never wait on the preflight.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STEP 4 — FETCH DEEP ============ -->
+  <section id="fetch">
+    <div class="stack-lg">
+      <div class="stack col">
+        <div class="step-head">
+          <span class="step-num">Step 4</span>
+          <h3>Fetch deep, or it fails silently</h3>
+          <span class="step-file">src/lib/client.js</span>
+        </div>
+        <p>When an author attaches an experience, the entry grows nested reference fields:
+          <code>nt_experiences &rarr; nt_variants &rarr; the variant entry &rarr; that variant&rsquo;s own assets</code>.
+          That nesting is deep, and it drives the single most common beginner failure.</p>
+      </div>
+
+      <figure class="code col-wide">
+        <figcaption>src/lib/client.js — the depth that matters</figcaption>
+<pre><b>const</b> landingPages = <b>await</b> getEntriesBySlug({
+  contentType: "landingPage",
+  slug,
+  includeDepth: <b>10</b>,  <i>// page &rarr; section &rarr; nt_experiences &rarr; nt_variants &rarr; variant &rarr; assets</i>
+});</pre>
+      </figure>
+
+      <div class="callout col-wide">
+        <p class="eyebrow">If &ldquo;personalization isn&rsquo;t working,&rdquo; check this first</p>
+        <p>Under-fetch the depth and variants <b>resolve to baseline with no error</b> &mdash; the page just looks
+          un-personalized. <code>10</code> matches what the SDK&rsquo;s own managed fetch uses. Links left unresolved past
+          the include depth become baseline silently, with nothing to point at.</p>
+      </div>
+
+      <p class="fine col-wide">In this repo the app owns its own fetch (Delivery API, cached with Next 16
+        <code>"use cache"</code>) and hands entries to the SDK as <code>baselineEntry</code>. The SDK can fetch for you
+        instead &mdash; configure <code>contentful: { client }</code> and pass <code>entryId</code> &mdash; but owning the
+        fetch avoids duplicating it and its cache.</p>
+    </div>
+  </section>
+
+  <!-- ============ STEP 5 — WRAP ============ -->
+  <section id="wrap">
+    <div class="stack-lg">
+      <div class="stack col">
+        <div class="step-head">
+          <span class="step-num">Step 5</span>
+          <h3>Wrap each entry so it can become a variant</h3>
+          <span class="step-file">ComponentResolver.jsx</span>
+        </div>
+        <p>The swap happens here. Wrap every content entry in <code>&lt;OptimizedEntry&gt;</code>, give it the baseline, and
+          render from the <em>resolved</em> result.</p>
+      </div>
+
+      <figure class="code col-wide">
+        <figcaption>src/components/ComponentResolver.jsx — the published path</figcaption>
+<pre><b>export const</b> ComponentResolver = ({ entry }) =&gt; {
+  <b>const</b> Component = ComponentMap[entry.sys.contentType.sys.id];
+  <b>if</b> (!Component) <b>return</b> null;
+
+  <b>return</b> (
+    &lt;<em class="s">OptimizedEntry</em> baselineEntry={entry}&gt;
+      {(resolved) =&gt; &lt;Component fields={resolved.fields} /&gt;}
+    &lt;/<em class="s">OptimizedEntry</em>&gt;
+  );
+};</pre>
+      </figure>
+
+      <div class="stack col">
+        <ul>
+          <li><b>The variant is resolved before markup is built</b>, so no baseline content flashes and then swaps.</li>
+          <li><b>No match &rarr; baseline. That&rsquo;s normal, not an error.</b> Every visitor always sees something.</li>
+          <li><b>Wrapping at the resolver</b> (not inside each leaf) keeps <code>Hero</code>, <code>Duplex</code>, and the
+            rest as plain props-in / JSX-out functions. Anything you add to <code>ComponentMap</code> becomes
+            personalizable automatically.</li>
+        </ul>
+      </div>
+
+      <div class="callout info col-wide">
+        <p class="eyebrow">Why there are two resolvers</p>
+        <p>Published and draft render differently. <code>ComponentResolver</code> is a Server Component for the
+          <b>published</b> path and ships zero Live Preview JS. <code>LivePreviewResolver</code> is a Client Component for
+          the <b>draft</b> path; it imports <code>OptimizedEntry</code> from <code>&hellip;/client</code> (the only variant
+          that accepts per-entry <code>liveUpdates</code>) so an author previewing edits sees variant resolution and live
+          edits compose. <code>page.jsx</code> picks between them from <code>draftMode()</code>. Add a component once to
+          <code>ComponentMap</code> and both paths get it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DEFER ============ -->
+  <section id="defer">
+    <div class="stack-lg">
+      <div class="stack col">
+        <p class="eyebrow">Refinements</p>
+        <h2>What you can defer until a variant renders</h2>
+        <p>Once the five pieces above put a variant on screen, these refine it. All are configured in
+          <code>src/lib/optimization.js</code> or mounted inside the boundary &mdash; none are needed to see personalization work.</p>
+      </div>
+      <div class="stack col">
+        <ul>
+          <li><b>Consent.</b> Gates whether the SDK may emit events or persist a profile. This repo derives it from OneTrust&rsquo;s cookie; the browser starts fail-closed and a sync component corrects it on mount.</li>
+          <li><b>Analytics events.</b> <code>allowedEventTypes</code> plus <code>NextAppAutoPageTracker</code> control tracking; the <code>page</code> event feeds experiment reporting.</li>
+          <li><b>Interaction tracking.</b> <code>trackEntryInteraction</code> (views / clicks / hovers) powers component and experiment reporting. Insights is built in &mdash; there is no separate plugin.</li>
+          <li><b>The preview panel.</b> Shown only in Draft Mode, it lets authors force audiences and experiences to test each variant.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CHECKLIST ============ -->
+  <section id="checklist">
+    <div class="stack-lg">
+      <div class="stack col">
+        <p class="eyebrow">Minimum viable wiring</p>
+        <h2>Get it working end to end</h2>
+      </div>
+
+      <ol class="check">
+        <li><b>Env vars.</b> <code>NEXT_PUBLIC_OPTIMIZATION_CLIENT_ID</code>, <code>NEXT_PUBLIC_OPTIMIZATION_ENVIRONMENT</code>, plus your Contentful space / env / delivery keys.</li>
+        <li><b>Proxy.</b> Export <code>proxy</code> from <code>createNextjsOptimizationContextHandler()</code>; matcher covers personalized routes and excludes <code>api</code>.</li>
+        <li><b>Bind once.</b> <code>bindNextjsAppRouterServerOptimization(&hellip;)</code>; export <code>OptimizationRoot</code>, <code>OptimizedEntry</code>, <code>NextAppAutoPageTracker</code> from <code>optimization.request</code>.</li>
+        <li><b>Boundary.</b> Mount <code>&lt;OptimizationRoot&gt;</code> behind <code>await connection()</code> inside <code>&lt;Suspense&gt;</code>, scoped to the personalized route &mdash; and repeat the <code>connection()</code> + <code>Suspense</code> in <code>page.jsx</code>.</li>
+        <li><b>Fetch deep.</b> <code>include: 10</code> so the experience nesting resolves.</li>
+        <li><b>Wrap entries.</b> <code>&lt;OptimizedEntry baselineEntry={entry}&gt;{(resolved) =&gt; &hellip;}&lt;/OptimizedEntry&gt;</code>.</li>
+      </ol>
+
+      <div class="stack col">
+        <h4>If variants aren&rsquo;t showing, check in this order</h4>
+        <ol class="tshoot">
+          <li><b>Fetch depth</b> &mdash; the silent one, and the most common. Is <code>include</code> deep enough?</li>
+          <li><b>Proxy matcher</b> &mdash; does it actually cover this route?</li>
+          <li><b>The entry</b> &mdash; does it really have an experience attached in Contentful?</li>
+          <li><b>Consent</b> &mdash; is it blocking selection or events?</li>
+          <li><b><code>await connection()</code></b> &mdash; present in both the boundary and <code>page.jsx</code>?</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="shell">
+  <p class="fine">Companion to <em>The Optimization SDK Boundary</em>. Grounded in the
+    <span class="mono">demo-optimization-sdk</span> repo &mdash; <span class="mono">@contentful/optimization-nextjs 1.2.0</span>,
+    Next.js 16 App Router. When code and this page disagree, the code is right; re-verify against the package README.</p>
+</footer>
