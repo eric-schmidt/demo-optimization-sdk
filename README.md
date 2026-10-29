@@ -8,7 +8,7 @@ Rendering is **hybrid SSR**: baseline content is fetched once and cached per rev
 
 - **Node `v26`** — the version is pinned in `.nvmrc`; run `nvm use` to match it.
 - A **Contentful space** with a Delivery API key, a Preview API key, and a Management token (the Management token is used only for the one-time content import below).
-- A **Contentful Optimization / Personalization client ID** for the space.
+- **Contentful Personalization** enabled for the space, with a data bucket connected to the environment you use (set it from that environment in the Personalization app — an alias does not inherit its target's connection).
 - The [Contentful CLI](https://www.contentful.com/developers/docs/tutorials/cli/installation/), for importing the baseline content model.
 
 ## Quickstart
@@ -36,9 +36,8 @@ Rendering is **hybrid SSR**: baseline content is fetched once and cached per rev
    | `CONTENTFUL_MANAGEMENT_TOKEN` | CMA token used **only** by the CLI import in step 3. Not read at runtime. |
    | `CONTENTFUL_PREVIEW_SECRET` | A secret **you invent**, guarding the `/api/draft` preview endpoint. |
    | `CONTENTFUL_REVALIDATION_SECRET` | A secret **you invent**, guarding the `/api/revalidate` webhook. Keep it different from the preview secret. |
-   | **Contentful Optimization** | |
-   | `NEXT_PUBLIC_OPTIMIZATION_CLIENT_ID` | Optimization/Personalization client ID (exposed to the browser by design). |
-   | `NEXT_PUBLIC_OPTIMIZATION_ENVIRONMENT` | Optimization environment; defaults to `main` if unset. |
+
+   The Optimization SDK (v2) has no variables of its own: it is configured with the same Contentful space ID and environment as the content client.
 
 3. **Import the baseline content model.** The repo ships a full space export, `space-export-no-p13n.json` (content types `landingPage`, `hero`, `duplex`, `mediaWrapper`):
 

@@ -5,8 +5,14 @@ import { OPTANON_COOKIE, resolveConsentFromOptanon } from "@/src/lib/consent";
 // Single bound server instance for the whole app. Called exactly once: a second
 // binding would create a second SDK instance competing with this one.
 const optimization = bindNextjsAppRouterServerOptimization({
-  clientId: process.env.NEXT_PUBLIC_OPTIMIZATION_CLIENT_ID ?? "",
-  environment: process.env.NEXT_PUBLIC_OPTIMIZATION_ENVIRONMENT ?? "main",
+  // SDK v2 addresses the Experience and Insights APIs by Contentful space and
+  // environment, so these are the same values the content client reads from —
+  // not the Ninetailed organization ID and data bucket (`main`) v1 used. The
+  // data bucket is resolved server-side from the connection made in the
+  // Personalization app, and that connection belongs to the exact environment
+  // name configured there: an alias does not resolve to its target (NT-4336).
+  spaceId: process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID ?? "",
+  environment: process.env.NEXT_PUBLIC_CONTENTFUL_ENV_ID ?? "master",
   // Matches the locale the Live Preview provider is configured with. One
   // concrete locale is required — locale-keyed field maps cannot be resolved.
   locale: "en-US",
